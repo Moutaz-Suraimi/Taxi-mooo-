@@ -191,24 +191,22 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           {serviceDetails.map((service, index) => (
             <div
               key={service.id}
-              className={`bg-white rounded-3xl border border-slate-200 shadow-[0_8px_30px_rgba(53,16,120,0.04)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0 ${
-                index % 2 === 1 ? 'lg:flex-row-reverse' : ''
-              }`}
+              className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(53,16,120,0.04)] hover:shadow-[0_16px_40px_rgba(53,16,120,0.08)] transition-all duration-300 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0"
             >
               {/* Image side */}
               <div
-                className={`lg:col-span-5 relative h-64 sm:h-80 lg:h-auto overflow-hidden bg-blue-50 ${
+                className={`lg:col-span-5 relative overflow-hidden bg-slate-900 aspect-[16/10] sm:aspect-[16/9] lg:aspect-auto min-h-[240px] sm:min-h-[280px] lg:min-h-full ${
                   index % 2 === 1 ? 'lg:order-2' : ''
                 }`}
               >
                 <img
                   src={service.image}
                   alt={service.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  className="absolute inset-0 w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700 select-none"
                   loading="lazy"
                 />
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1 rounded-full bg-[#00255c] text-[#FFD500] text-xs font-black shadow-md">
+                <div className="absolute top-4 left-4 z-10">
+                  <span className="px-3.5 py-1.5 rounded-full bg-[#00255c]/90 backdrop-blur-md text-[#FFD500] text-xs font-black shadow-md border border-white/10">
                     {service.tag}
                   </span>
                 </div>

@@ -143,7 +143,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
               <img
                 src={item.image}
                 alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
+                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 select-none"
                 loading="lazy"
               />
               <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[11px] font-bold text-[#0B2559] shadow-sm">
