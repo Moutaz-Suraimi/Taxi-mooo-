@@ -172,23 +172,16 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
 
   const handleSelectVehicle = (type: 'klein' | 'groot') => {
     setVehicleType(type);
-    if (type === 'klein' && passengers > 3) {
-      setPassengers(3);
+    const max = type === 'klein' ? 3 : 5;
+    if (passengers > max) {
+      setPassengers(max);
     }
   };
 
   const handleIncreasePassengers = () => {
-    if (vehicleType === 'klein') {
-      if (passengers < 3) {
-        setPassengers(passengers + 1);
-      } else {
-        setVehicleType('groot');
-        setPassengers(4);
-      }
-    } else {
-      if (passengers < 5) {
-        setPassengers(passengers + 1);
-      }
+    const max = vehicleType === 'klein' ? 3 : 5;
+    if (passengers < max) {
+      setPassengers(passengers + 1);
     }
   };
 
@@ -658,8 +651,9 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 <button
                   type="button"
                   onClick={handleDecreasePassengers}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={passengers <= 1}
+                  aria-label="Reiziger verminderen"
                 >
                   –
                 </button>
@@ -669,8 +663,10 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 <button
                   type="button"
                   onClick={handleIncreasePassengers}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40"
-                  disabled={vehicleType === 'groot' && passengers >= 5}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={passengers >= (vehicleType === 'klein' ? 3 : 5)}
+                  aria-label="Reiziger toevoegen"
+                  title={passengers >= (vehicleType === 'klein' ? 3 : 5) ? `Maximaal ${vehicleType === 'klein' ? 3 : 5} reizigers voor dit type voertuig` : 'Reiziger toevoegen'}
                 >
                   +
                 </button>

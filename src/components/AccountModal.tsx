@@ -26,9 +26,10 @@ interface AuthUser {
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLoginSuccess?: () => void;
 }
 
-export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
+export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
       const s = localStorage.getItem('taximooo_user');
@@ -90,7 +91,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      setUser({
+      const newUser = {
         name: loginEmail.split('@')[0].replace('.', ' '),
         email: loginEmail,
         phone: '+31 6 41212427',
@@ -98,8 +99,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
         balance: 45.2,
         ridesCount: 12,
         rating: 4.8,
-      });
+      };
+      setUser(newUser);
+      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
       setSuccessMessage('Succesvol ingelogd!');
+      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 700);
     }, 600);
   };
 
@@ -125,7 +129,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      setUser({
+      const newUser = {
         name: regName.trim(),
         email: regEmail.trim(),
         phone: regPhone.trim(),
@@ -133,8 +137,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
         balance: 10.0,
         ridesCount: 0,
         rating: 5.0,
-      });
+      };
+      setUser(newUser);
+      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
       setSuccessMessage('Account succesvol aangemaakt! Welkom bij Taxi mooo.');
+      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 900);
     }, 800);
   };
 
@@ -143,7 +150,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     setError('');
     setTimeout(() => {
       setIsLoading(false);
-      setUser({
+      const newUser = {
         name: 'Moutaz Wael',
         email: 'moutaz.wael@gmail.com',
         phone: '+31 6 41212427',
@@ -151,8 +158,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
         balance: 45.2,
         ridesCount: 12,
         rating: 4.9,
-      });
+      };
+      setUser(newUser);
+      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
       setSuccessMessage('Succesvol ingelogd via Google!');
+      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 700);
     }, 700);
   };
 

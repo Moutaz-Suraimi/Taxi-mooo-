@@ -24,6 +24,7 @@ import { FaqPage } from './pages/FaqPage';
 import { ContactPage } from './pages/ContactPage';
 import { ReviewsPage } from './pages/ReviewsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ClientDashboard } from './pages/ClientDashboard';
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<PageType>(() => {
@@ -77,6 +78,17 @@ export function App() {
     );
   }
 
+  // ── Client dashboard (full-screen, no header/footer) ──
+  if (currentPage === 'dashboard') {
+    return (
+      <ClientDashboard
+        onExit={() => navigateTo('home')}
+        onOpenAccount={() => setIsAccountModalOpen(true)}
+        onNavigateToContact={() => navigateTo('contact')}
+      />
+    );
+  }
+
   const isHome = currentPage === 'home';
 
   return (
@@ -91,7 +103,17 @@ export function App() {
         <Header
           currentPage={currentPage}
           onNavigate={navigateTo}
-          onOpenAccount={() => setIsAccountModalOpen(true)}
+          onOpenAccount={() => {
+            // If already logged in, go straight to dashboard
+            try {
+              const s = localStorage.getItem('taximooo_user');
+              if (s && JSON.parse(s)?.isLoggedIn) {
+                navigateTo('dashboard');
+                return;
+              }
+            } catch {}
+            setIsAccountModalOpen(true);
+          }}
         />
 
         {/* Hero only on home page – the photo + overlays are inside HeroSection */}
@@ -140,17 +162,17 @@ export function App() {
             {/* ⑧ FAQ accordion */}
             <FaqPreviewSection
               onNavigateToFaq={() => navigateTo('faq')}
-              onOpenContact={() => setIsContactModalOpen(true)}
+              onOpenContact={() => navigateTo('contact')}
             />
 
             {/* ⑨ Contact teaser */}
             <ContactPreviewSection
               onNavigateToContact={() => navigateTo('contact')}
-              onOpenContactModal={() => setIsContactModalOpen(true)}
+              onOpenContactModal={() => navigateTo('contact')}
             />
 
             {/* ⑩ Promotional banner */}
-            <PromotionalBanner onOpenContact={() => setIsContactModalOpen(true)} />
+            <PromotionalBanner onOpenContact={() => navigateTo('contact')} />
           </>
         )}
 
@@ -194,7 +216,7 @@ export function App() {
       ══════════════════════════════════════════ */}
       <Footer
         onNavigate={navigateTo}
-        onOpenContactModal={() => setIsContactModalOpen(true)}
+        onOpenContactModal={() => navigateTo('contact')}
       />
 
       {/* ══════════════════════════════════════════
@@ -208,6 +230,7 @@ export function App() {
       <AccountModal
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
+        onLoginSuccess={() => { setIsAccountModalOpen(false); navigateTo('dashboard'); }}
       />
       <ContactModal
         isOpen={isContactModalOpen}

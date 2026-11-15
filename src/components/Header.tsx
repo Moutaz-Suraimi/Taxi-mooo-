@@ -2,7 +2,7 @@ import React from 'react';
 import { User, Menu, X, Phone } from 'lucide-react';
 import { Logo } from './Logo';
 
-export type PageType = 'home' | 'about' | 'services' | 'reviews' | 'faq' | 'contact' | 'admin';
+export type PageType = 'home' | 'about' | 'services' | 'reviews' | 'faq' | 'contact' | 'admin' | 'dashboard';
 
 interface HeaderProps {
   currentPage: PageType;
@@ -18,6 +18,26 @@ export const Header: React.FC<HeaderProps> = ({
   onScrollToReviews,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  // Check if user is logged in
+  const isLoggedIn = (() => {
+    try {
+      const s = localStorage.getItem('taximooo_user');
+      if (!s) return false;
+      const u = JSON.parse(s);
+      return !!u?.isLoggedIn;
+    } catch {
+      return false;
+    }
+  })();
+
+  const handleAccountClick = () => {
+    if (isLoggedIn) {
+      onNavigate('dashboard');
+    } else {
+      onOpenAccount();
+    }
+  };
 
   const handleReviewsClick = () => {
     if (onScrollToReviews) { onScrollToReviews(); return; }
@@ -73,11 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
           </a>
 
           <button
-            onClick={onOpenAccount}
+            onClick={handleAccountClick}
             className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FFB800] hover:bg-[#FFA500] text-[#001331] font-bold text-sm shadow-md shadow-[#FFB800]/25 hover:shadow-lg transition-all duration-200 cursor-pointer"
           >
             <User className="w-4 h-4" />
-            <span>Mijn account</span>
+            <span>{isLoggedIn ? 'Mijn account' : 'Mijn account'}</span>
           </button>
 
           {/* Mobile menu button */}
@@ -122,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
                   +31 6 41212427
                 </a>
                 <button
-                  onClick={() => { onOpenAccount(); setMobileMenuOpen(false); }}
+                  onClick={() => { handleAccountClick(); setMobileMenuOpen(false); }}
                   className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#FFB800] text-[#001331] font-bold hover:bg-[#FFA500] transition"
                 >
                   <User className="w-4 h-4" />

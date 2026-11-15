@@ -86,8 +86,12 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
 
   // Sync selected vehicle when bookingData changes
   useEffect(() => {
-    if (bookingData?.vehicleType) {
-      setSelectedVehicle(bookingData.vehicleType);
+    if (bookingData) {
+      if (bookingData.passengers > 3) {
+        setSelectedVehicle('groot');
+      } else if (bookingData.vehicleType) {
+        setSelectedVehicle(bookingData.vehicleType);
+      }
     }
   }, [bookingData]);
 
@@ -297,11 +301,16 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* Option 1: Kleine auto */}
                   <div
-                    onClick={() => setSelectedVehicle('klein')}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                      selectedVehicle === 'klein'
-                        ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/15'
-                        : 'border-gray-200 hover:border-slate-200 bg-white'
+                    onClick={() => {
+                      if (bookingData.passengers > 3) return;
+                      setSelectedVehicle('klein');
+                    }}
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                      bookingData.passengers > 3
+                        ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200'
+                        : selectedVehicle === 'klein'
+                        ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/15 cursor-pointer'
+                        : 'border-gray-200 hover:border-slate-200 bg-white cursor-pointer'
                     }`}
                   >
                     <div>
@@ -310,8 +319,12 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                           <Car className="w-5 h-5 text-[#00255c]" />
                           <span className="font-extrabold text-base text-[#07152B]">Kleine auto</span>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#00255c] text-[11px] font-bold">
-                          Tot 3 personen
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                          bookingData.passengers > 3
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-blue-100 text-[#00255c]'
+                        }`}>
+                          {bookingData.passengers > 3 ? `Max 3 (jij hebt ${bookingData.passengers})` : 'Tot 3 personen'}
                         </span>
                       </div>
                       <div className="text-xs text-gray-500">
