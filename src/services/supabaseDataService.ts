@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Database, OrderStatus, DriverStatus, PaymentMethod, PaymentStatus, VehicleType } from '../types/database.types';
+import type { BookingOrder } from './adminBookingService';
 
 export interface CreateBookingPayload {
   customerName: string;
@@ -25,6 +26,45 @@ export interface CreateBookingPayload {
   paymentMethod: PaymentMethod;
   paymentStatus?: PaymentStatus;
   customerId?: string;
+}
+
+export function mapSupabaseOrderToBookingOrder(row: any): BookingOrder {
+  return {
+    id: row.order_number || row.id,
+    createdAt: row.created_at || new Date().toISOString(),
+    status: (row.status || 'nieuw') as OrderStatus,
+    pickup: row.pickup_address || '',
+    destination: row.destination_address || '',
+    stops: Array.isArray(row.stops) ? row.stops.map((s: any) => s.address || String(s)) : [],
+    estimatedKm: Number(row.estimated_km) || 0,
+    estimatedDurationMins: Number(row.estimated_duration_mins) || 30,
+    pickupDate: row.pickup_date || '',
+    pickupTime: row.pickup_time || '',
+    isReturnTrip: Boolean(row.is_return_trip),
+    returnDate: row.return_date || undefined,
+    returnTime: row.return_time || undefined,
+    flightNumber: row.flight_number || undefined,
+    vehicleType: (row.vehicle_type || 'klein') as 'klein' | 'groot',
+    passengers: Number(row.passengers) || 1,
+    hasLuggage: Boolean(row.has_luggage),
+    kmRate: Number(row.km_rate) || 2.39,
+    totalFare: Number(row.total_fare) || 0,
+    customerName: row.customer_name || 'Klant',
+    customerPhone: row.customer_phone || '',
+    customerEmail: row.customer_email || '',
+    customerNotes: row.customer_notes || undefined,
+    paymentMethod: (row.payment_method || 'ideal') as PaymentMethod,
+    paymentStatus: (row.payment_status || 'openstaand') as PaymentStatus,
+    assignedDriver: row.assigned_driver ? {
+      id: row.assigned_driver.id,
+      name: row.assigned_driver.full_name,
+      phone: row.assigned_driver.phone,
+      vehicle: row.assigned_driver.vehicle_model,
+      plate: row.assigned_driver.vehicle_plate,
+      status: row.assigned_driver.status,
+      rating: Number(row.assigned_driver.rating) || 5.0,
+    } : undefined,
+  };
 }
 
 export const supabaseDataService = {
@@ -124,16 +164,21 @@ export const supabaseDataService = {
   async updateOrderStatus(orderId: string, status: OrderStatus) {
     if (!isSupabaseConfigured) return;
 
+    // Remove leading # if present
+    const cleanId = orderId.replace(/^#/, '');
+
     const { error } = await supabase
       .from('booking_orders')
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', orderId);
+      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
 
-    if (error) console.error('Error updating status:', error);
+    if (error) console.error('Error updating status in Supabase:', error);
   },
 
   async assignDriver(orderId: string, driverId: string) {
     if (!isSupabaseConfigured) return;
+
+    const cleanId = orderId.replace(/^#/, '');
 
     const { error } = await supabase
       .from('booking_orders')
@@ -142,20 +187,22 @@ export const supabaseDataService = {
         status: 'toegewezen',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', orderId);
+      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
 
-    if (error) console.error('Error assigning driver:', error);
+    if (error) console.error('Error assigning driver in Supabase:', error);
   },
 
   async deleteOrder(orderId: string) {
     if (!isSupabaseConfigured) return;
 
+    const cleanId = orderId.replace(/^#/, '');
+
     const { error } = await supabase
       .from('booking_orders')
       .delete()
-      .eq('id', orderId);
+      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
 
-    if (error) console.error('Error deleting order:', error);
+    if (error) console.error('Error deleting order in Supabase:', error);
   },
 
   // ── 2. DRIVERS ────────────────────────────────────────────────────

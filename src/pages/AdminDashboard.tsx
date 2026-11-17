@@ -29,6 +29,10 @@ import {
   type PricingSettings,
   type ContactInquiry,
 } from '../services/adminBookingService';
+import {
+  supabaseDataService,
+  mapSupabaseOrderToBookingOrder,
+} from '../services/supabaseDataService';
 
 interface AdminDashboardProps {
   onExit: () => void;
@@ -66,16 +70,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   };
 
   // Reload data
-  const loadData = () => {
-    setOrders(adminBookingService.getOrders());
+  const loadData = async () => {
+    // 1. Load local state first
+    const local = adminBookingService.getOrders();
+    setOrders(local);
     setDrivers(adminBookingService.getDrivers());
     setSettings(adminBookingService.getSettings());
     setInquiries(adminBookingService.getInquiries());
+
+    // 2. Fetch live data from Supabase if configured
+    if (supabaseDataService.isLive()) {
+      try {
+        const remoteOrders = await supabaseDataService.getAllOrders();
+        if (remoteOrders && remoteOrders.length > 0) {
+          const mapped = remoteOrders.map(mapSupabaseOrderToBookingOrder);
+          const merged = [...mapped];
+          local.forEach((loc) => {
+            if (!merged.some((m) => m.id === loc.id)) {
+              merged.push(loc);
+            }
+          });
+          setOrders(merged);
+        }
+
+        const remoteDrivers = await supabaseDataService.getDrivers();
+        if (remoteDrivers && remoteDrivers.length > 0) {
+          setDrivers(remoteDrivers.map((d: any) => ({
+            id: d.id,
+            name: d.full_name,
+            phone: d.phone,
+            vehicle: d.vehicle_model,
+            plate: d.vehicle_plate,
+            status: d.status,
+            rating: Number(d.rating) || 5.0,
+          })));
+        }
+
+        const remoteInquiries = await supabaseDataService.getInquiries();
+        if (remoteInquiries && remoteInquiries.length > 0) {
+          setInquiries(remoteInquiries.map((inq: any) => ({
+            id: inq.id,
+            date: inq.created_at,
+            name: inq.name,
+            email: inq.email,
+            phone: inq.phone || '',
+            subject: inq.subject,
+            message: inq.message,
+            isRead: Boolean(inq.is_read),
+          })));
+        }
+      } catch (err) {
+        console.error('Error loading data from Supabase:', err);
+      }
+    }
   };
 
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
+
+      // Subscribe to real-time incoming orders from Supabase
+      if (supabaseDataService.isLive()) {
+        const unsubscribe = supabaseDataService.subscribeToOrders((newOrderRow) => {
+          const mapped = mapSupabaseOrderToBookingOrder(newOrderRow);
+          setOrders((prev) => [mapped, ...prev.filter((o) => o.id !== mapped.id)]);
+          showToast(`🚨 Nieuwe rit binnengekomen: ${mapped.id} (${mapped.customerName})`);
+        });
+        return () => {
+          unsubscribe();
+        };
+      }
     }
   }, [isAuthenticated]);
 
@@ -110,6 +174,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   // ─── ORDER ACTIONS ──────────────────────────────────────
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
     adminBookingService.updateOrderStatus(orderId, newStatus);
+    if (supabaseDataService.isLive()) {
+      supabaseDataService.updateOrderStatus(orderId, newStatus);
+    }
     loadData();
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
@@ -121,6 +188,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const driver = drivers.find((d) => d.id === driverId);
     if (!driver) return;
     adminBookingService.assignDriver(orderId, driver);
+    if (supabaseDataService.isLive()) {
+      supabaseDataService.assignDriver(orderId, driverId);
+    }
     loadData();
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({
@@ -135,6 +205,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const handleDeleteOrder = (orderId: string) => {
     if (window.confirm(`Weet je zeker dat je rit ${orderId} wilt verwijderen?`)) {
       adminBookingService.deleteOrder(orderId);
+      if (supabaseDataService.isLive()) {
+        supabaseDataService.deleteOrder(orderId);
+      }
       if (selectedOrder?.id === orderId) setSelectedOrder(null);
       loadData();
       showToast(`Rit ${orderId} verwijderd.`);
