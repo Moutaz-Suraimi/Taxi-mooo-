@@ -205,6 +205,23 @@ export const supabaseDataService = {
     if (error) console.error('Error deleting order in Supabase:', error);
   },
 
+  // Get orders by customer email (for client dashboard — no login required)
+  async getOrdersByEmail(email: string) {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabase
+      .from('booking_orders')
+      .select('*')
+      .eq('customer_email', email)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching orders by email:', error);
+      return [];
+    }
+    return data;
+  },
+
   // ── 2. DRIVERS ────────────────────────────────────────────────────
   async getDrivers() {
     if (!isSupabaseConfigured) return [];

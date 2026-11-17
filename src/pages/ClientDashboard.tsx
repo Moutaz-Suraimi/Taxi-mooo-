@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   User, Mail, Shield, CreditCard, Star, Car, Wallet, Clock,
   CheckCircle2, LogOut, ChevronRight, MapPin,
@@ -6,6 +6,7 @@ import {
   Home, Menu, X, Phone,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { supabaseDataService, mapSupabaseOrderToBookingOrder } from '../services/supabaseDataService';
 
 // ─── Brand tokens ──────────────────────────────────────
 const NAVY   = '#001331';
@@ -71,33 +72,7 @@ const MENU_CARDS: {
   { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: 'Klantenservice',          sub: 'Hulp nodig? Neem contact met ons op', span: true },
 ];
 
-// ─── Mock recent rides ───────────────────────────────────
-const RECENT_RIDES = [
-  {
-    from: 'Amsterdam Centraal',
-    to: 'Schiphol Airport',
-    date: '08-11-2026',
-    time: '14:30',
-    status: 'Voltooid',
-    price: '€ 38.50',
-  },
-  {
-    from: 'Utrecht Centraal',
-    to: 'Amsterdam Zuid',
-    date: '01-11-2026',
-    time: '09:15',
-    status: 'Voltooid',
-    price: '€ 54.20',
-  },
-  {
-    from: 'Schiphol Airport',
-    to: 'Haarlem Centrum',
-    date: '24-10-2026',
-    time: '21:00',
-    status: 'Voltooid',
-    price: '€ 42.00',
-  },
-];
+// ─── Mock recent rides ─── REMOVED (now uses live Supabase data) ───
 
 // ══════════════════════════════════════════════════════════
 //  SECTION VIEWS
@@ -302,7 +277,22 @@ function KlantenserviceSection({ onContact }: { onContact?: () => void }) {
 }
 
 // ─── MAIN DASHBOARD ─────────────────────────────────────
-function MainDashboard({ user, onNavigate, onContact }: { user: AuthUser; onNavigate: (s: DashSection) => void; onContact?: () => void }) {
+interface RecentRide {
+  from: string;
+  to: string;
+  date: string;
+  time: string;
+  status: string;
+  price: string;
+}
+
+function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading }: {
+  user: AuthUser;
+  onNavigate: (s: DashSection) => void;
+  onContact?: () => void;
+  recentRides: RecentRide[];
+  ridesLoading: boolean;
+}) {
   return (
     <div className="space-y-6">
 
@@ -520,30 +510,43 @@ function MainDashboard({ user, onNavigate, onContact }: { user: AuthUser; onNavi
 
         {/* Rides list */}
         <div className="divide-y divide-gray-50">
-          {RECENT_RIDES.map((ride, i) => (
-            <div key={i} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#07152B] flex-wrap">
-                  <MapPin className="w-3.5 h-3.5 text-[#001331] shrink-0" />
-                  <span>{ride.from}</span>
-                  <span className="text-gray-400 text-xs">──</span>
-                  <MapPin className="w-3.5 h-3.5 text-[#FFB800] shrink-0" />
-                  <span>{ride.to}</span>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                  <span>📅 {ride.date}</span>
-                  <span>🕒 {ride.time}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="px-2.5 py-1 bg-green-50 text-green-700 font-bold rounded-full text-[11px] flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  {ride.status}
-                </span>
-                <span className="font-extrabold text-[#07152B]">{ride.price}</span>
-              </div>
+          {ridesLoading ? (
+            <div className="px-4 py-8 text-center text-sm text-gray-400">
+              <div className="w-6 h-6 border-2 border-[#001331]/20 border-t-[#001331] rounded-full animate-spin mx-auto mb-2" />
+              Ritten laden...
             </div>
-          ))}
+          ) : recentRides.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-gray-400">
+              <Car className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+              <p className="font-semibold text-gray-500">Geen ritten gevonden</p>
+              <p className="text-xs mt-1">Je hebt nog geen ritten geboekt via je account.</p>
+            </div>
+          ) : (
+            recentRides.map((ride, i) => (
+              <div key={i} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#07152B] flex-wrap">
+                    <MapPin className="w-3.5 h-3.5 text-[#001331] shrink-0" />
+                    <span>{ride.from}</span>
+                    <span className="text-gray-400 text-xs">──</span>
+                    <MapPin className="w-3.5 h-3.5 text-[#FFB800] shrink-0" />
+                    <span>{ride.to}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                    <span>📅 {ride.date}</span>
+                    <span>🕒 {ride.time}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="px-2.5 py-1 bg-green-50 text-green-700 font-bold rounded-full text-[11px] flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {ride.status}
+                  </span>
+                  <span className="font-extrabold text-[#07152B]">{ride.price}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -565,12 +568,50 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
 
   const [activeSection, setActiveSection] = useState<DashSection>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [recentRides, setRecentRides] = useState<{ from: string; to: string; date: string; time: string; status: string; price: string }[]>([]);
+  const [ridesLoading, setRidesLoading] = useState(false);
+
+  // Load rides from Supabase based on customer email
+  const loadRides = useCallback(async (email: string) => {
+    if (!supabaseDataService.isLive()) return;
+    setRidesLoading(true);
+    try {
+      const orders = await supabaseDataService.getOrdersByEmail(email);
+      const mapped = (orders || []).map((o: any) => {
+        const bo = mapSupabaseOrderToBookingOrder(o);
+        const d = new Date(bo.pickupDate);
+        const dateStr = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+        const statusMap: Record<string, string> = {
+          nieuw: 'Nieuw', bevestigd: 'Bevestigd', toegewezen: 'Toegewezen',
+          onderweg: 'Onderweg', voltooid: 'Voltooid', geannuleerd: 'Geannuleerd',
+        };
+        return {
+          from: bo.pickup,
+          to: bo.destination,
+          date: dateStr,
+          time: bo.pickupTime,
+          status: statusMap[bo.status] || bo.status,
+          price: `€ ${bo.totalFare.toFixed(2)}`,
+        };
+      });
+      setRecentRides(mapped);
+    } catch (err) {
+      console.error('Error loading rides:', err);
+    } finally {
+      setRidesLoading(false);
+    }
+  }, []);
 
   // Sync user to localStorage
   useEffect(() => {
     if (user) localStorage.setItem('taximooo_user', JSON.stringify(user));
     else localStorage.removeItem('taximooo_user');
   }, [user]);
+
+  // Load rides when user is set
+  useEffect(() => {
+    if (user?.email) loadRides(user.email);
+  }, [user?.email, loadRides]);
 
   // If not logged in, open account modal and exit dashboard
   useEffect(() => {
@@ -601,7 +642,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
   const renderSection = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} />;
+        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} recentRides={recentRides} ridesLoading={ridesLoading} />;
       case 'accountgegevens':
         return <AccountGegevensSection user={user} onSave={handleUpdateUser} />;
       case 'beveiliging':
@@ -613,7 +654,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
       case 'klantenservice':
         return <KlantenserviceSection onContact={onNavigateToContact} />;
       default:
-        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} />;
+        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} recentRides={recentRides} ridesLoading={ridesLoading} />;
     }
   };
 

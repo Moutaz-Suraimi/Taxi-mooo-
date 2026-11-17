@@ -69,30 +69,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Reload data
+  // Reload data — Supabase is source of truth
   const loadData = async () => {
-    // 1. Load local state first
-    const local = adminBookingService.getOrders();
-    setOrders(local);
-    setDrivers(adminBookingService.getDrivers());
+    // Always start with empty state (no mock data)
+    setOrders([]);
+    setDrivers([]);
     setSettings(adminBookingService.getSettings());
-    setInquiries(adminBookingService.getInquiries());
+    setInquiries([]);
 
-    // 2. Fetch live data from Supabase if configured
     if (supabaseDataService.isLive()) {
       try {
+        // ── Orders ──
         const remoteOrders = await supabaseDataService.getAllOrders();
-        if (remoteOrders && remoteOrders.length > 0) {
-          const mapped = remoteOrders.map(mapSupabaseOrderToBookingOrder);
-          const merged = [...mapped];
-          local.forEach((loc) => {
-            if (!merged.some((m) => m.id === loc.id)) {
-              merged.push(loc);
-            }
-          });
-          setOrders(merged);
-        }
+        const mapped = (remoteOrders || []).map(mapSupabaseOrderToBookingOrder);
+        // Also merge any localStorage orders not yet synced
+        const localOrders = adminBookingService.getOrders();
+        localOrders.forEach((loc) => {
+          if (!mapped.some((m) => m.id === loc.id)) mapped.push(loc);
+        });
+        setOrders(mapped);
 
+        // ── Drivers ──
         const remoteDrivers = await supabaseDataService.getDrivers();
         if (remoteDrivers && remoteDrivers.length > 0) {
           setDrivers(remoteDrivers.map((d: any) => ({
@@ -106,6 +103,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           })));
         }
 
+        // ── Inquiries ──
         const remoteInquiries = await supabaseDataService.getInquiries();
         if (remoteInquiries && remoteInquiries.length > 0) {
           setInquiries(remoteInquiries.map((inq: any) => ({
@@ -119,9 +117,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             isRead: Boolean(inq.is_read),
           })));
         }
+
+        // ── Pricing ──
+        const remotePricing = await supabaseDataService.getPricingSettings();
+        if (remotePricing) {
+          const mapped: PricingSettings = {
+            kleinKmRate: Number(remotePricing.klein_km_rate) || 2.39,
+            grootKmRate: Number(remotePricing.groot_km_rate) || 3.04,
+            minimumFare: Number(remotePricing.minimum_fare) || 25.0,
+            nightSurchargePct: Number(remotePricing.night_surcharge_pct) || 15,
+            returnDiscountPct: Number(remotePricing.return_discount_pct) || 10,
+            stopFee: Number(remotePricing.stop_fee) || 4.5,
+          };
+          setSettings(mapped);
+          adminBookingService.saveSettings(mapped);
+        }
       } catch (err) {
         console.error('Error loading data from Supabase:', err);
+        // Fallback: show localStorage data
+        setOrders(adminBookingService.getOrders());
       }
+    } else {
+      // No Supabase — use localStorage only
+      setOrders(adminBookingService.getOrders());
     }
   };
 

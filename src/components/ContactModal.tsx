@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Phone, Mail, MapPin, Clock, MessageSquare, Send, Check } from 'lucide-react';
-import { adminBookingService } from '../services/adminBookingService';
+import { supabaseDataService } from '../services/supabaseDataService';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -17,13 +17,13 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    adminBookingService.saveInquiry({
+    supabaseDataService.submitInquiry({
       name,
       email,
       phone: '+31 6 41212427',
       subject: 'Vraag via Snelle Contact Modal',
       message,
-    });
+    }).catch(() => {/* silent fallback */});
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

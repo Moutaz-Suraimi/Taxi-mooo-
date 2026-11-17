@@ -11,7 +11,7 @@ import {
   Sparkles,
   Building,
 } from 'lucide-react';
-import { adminBookingService } from '../services/adminBookingService';
+import { supabaseDataService } from '../services/supabaseDataService';
 
 interface ContactPageProps {
   onNavigateHome: () => void;
@@ -33,13 +33,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    adminBookingService.saveInquiry({
+    supabaseDataService.submitInquiry({
       name,
       email,
       phone,
       subject,
       message,
-    });
+    }).catch(() => {/* silent */});
     setTimeout(() => {
       setIsSubmitting(false);
       setSubmitted(true);
