@@ -15,7 +15,6 @@ import {
   MessageSquare,
   ExternalLink,
   Lock,
-  UserCheck,
   Share2,
   Eye,
   ArrowRight,
@@ -38,7 +37,7 @@ interface AdminDashboardProps {
   onExit: () => void;
 }
 
-type AdminTab = 'overview' | 'orders' | 'drivers' | 'pricing' | 'inquiries';
+type AdminTab = 'overview' | 'orders' | 'pricing' | 'inquiries';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   // ─── AUTHENTICATION STATE ───────────────────────────────
@@ -466,7 +465,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
               {[
                 { id: 'orders' as AdminTab, label: 'Ritorders', icon: <Car className="w-4 h-4" />, badge: newOrdersCount },
                 { id: 'overview' as AdminTab, label: 'Overzicht & KPI', icon: <TrendingUp className="w-4 h-4" /> },
-                { id: 'drivers' as AdminTab, label: 'Chauffeurs & Vloot', icon: <UserCheck className="w-4 h-4" /> },
                 { id: 'inquiries' as AdminTab, label: 'Berichten', icon: <MessageSquare className="w-4 h-4" />, badge: inquiries.filter(i => !i.isRead).length },
                 { id: 'pricing' as AdminTab, label: 'Tarieven & Beheer', icon: <Settings className="w-4 h-4" /> },
               ].map((tab) => {
@@ -514,10 +512,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 <span className="font-black text-[#FFB800]">€ {totalRevenue.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/60">Chauffeurs actief</span>
-                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  {drivers.filter(d => d.status !== 'offline').length} / {drivers.length}
+                <span className="text-white/60">Nieuwe berichten</span>
+                <span className="font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md">
+                  {inquiries.filter(i => !i.isRead).length}
                 </span>
               </div>
             </div>
@@ -792,12 +789,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
                 <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chauffeurs</span>
-                    <h3 className="text-2xl font-black text-[#001331] mt-1">{drivers.length}</h3>
-                    <span className="text-[11px] text-green-600 font-bold">{drivers.filter(d => d.status === 'beschikbaar').length} nu beschikbaar</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Klantberichten</span>
+                    <h3 className="text-2xl font-black text-[#001331] mt-1">{inquiries.length}</h3>
+                    <span className="text-[11px] text-blue-600 font-bold">{inquiries.filter(i => !i.isRead).length} ongelezen</span>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center font-bold">
-                    <UserCheck className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <MessageSquare className="w-6 h-6" />
                   </div>
                 </div>
 
@@ -876,87 +873,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           )}
 
           {/* ══════════════════════════════════════════
-              VIEW 3: CHAUFFEURS & VLOOT
-          ══════════════════════════════════════════ */}
-          {activeTab === 'drivers' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-black text-[#001331]">Chauffeurs & Wagenpark</h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Overzicht van actieve beroepschauffeurs en geregistreerde Mercedes-Benz wagens
-                  </p>
-                </div>
-              </div>
-
-              {drivers.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center text-gray-400 text-sm border border-slate-200">
-                  Geen geregistreerde chauffeurs in de database.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {drivers.map((drv) => {
-                    const statusColor =
-                      drv.status === 'beschikbaar'
-                        ? 'bg-green-100 text-green-800'
-                        : drv.status === 'bezig'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-gray-100 text-gray-600';
-
-                    return (
-                      <div key={drv.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-xl bg-[#001331] text-[#FFB800] flex items-center justify-center font-black text-sm">
-                              {drv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                            </div>
-                            <div>
-                              <h4 className="font-black text-sm text-[#001331]">{drv.name}</h4>
-                              <span className="text-[11px] text-gray-500">{drv.phone}</span>
-                            </div>
-                          </div>
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColor}`}>
-                            {drv.status.toUpperCase()}
-                          </span>
-                        </div>
-
-                        <div className="p-3 bg-gray-50 rounded-xl space-y-1.5 text-xs text-gray-600">
-                          <div className="flex justify-between">
-                            <span>Voertuig:</span>
-                            <span className="font-bold text-gray-900">{drv.vehicle}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Kenteken:</span>
-                            <span className="font-mono font-bold text-gray-900 bg-white px-1.5 py-0.5 rounded border border-gray-200">
-                              {drv.plate}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Beoordeling:</span>
-                            <span className="font-bold text-amber-600">★ {drv.rating}</span>
-                          </div>
-                        </div>
-
-                        {/* Direct WhatsApp Call Chauffeur */}
-                        <a
-                          href={`https://wa.me/${drv.phone.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full py-2 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 font-bold text-xs flex items-center justify-center gap-2 transition"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Chat via WhatsApp</span>
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════
-              VIEW 4: TARIEVEN & INSTELLINGEN
+              VIEW 3: TARIEVEN & INSTELLINGEN
           ══════════════════════════════════════════ */}
           {activeTab === 'pricing' && (
             <div className="space-y-6 max-w-3xl">
