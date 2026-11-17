@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, Mail, Shield, CreditCard, Star, Car, Wallet, Clock,
-  CheckCircle2, Share2, LogOut, ChevronRight, MapPin, Tag,
-  Building2, Headphones, Bell, ChevronDown, Pencil, ArrowRight,
+  CheckCircle2, LogOut, ChevronRight, MapPin,
+  Headphones, Bell, ChevronDown, ArrowRight,
   Home, Menu, X, Phone,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
@@ -28,8 +28,6 @@ type DashSection =
   | 'beveiliging'
   | 'betaalmethoden'
   | 'favorieten'
-  | 'kortingen'
-  | 'bedrijf'
   | 'klantenservice';
 
 interface ClientDashboardProps {
@@ -55,8 +53,6 @@ const NAV_ITEMS: { id: DashSection; label: string; icon: React.ReactNode }[] = [
   { id: 'beveiliging',   label: 'Inloggen & beveiliging', icon: <Shield className="w-4 h-4" /> },
   { id: 'betaalmethoden', label: 'Betaalmethoden',     icon: <CreditCard className="w-4 h-4" /> },
   { id: 'favorieten',    label: 'Favoriete locaties',  icon: <Star className="w-4 h-4" /> },
-  { id: 'kortingen',     label: 'Mijn kortingen',      icon: <Tag className="w-4 h-4" /> },
-  { id: 'bedrijf',       label: 'Bedrijf aanmaken',    icon: <Building2 className="w-4 h-4" /> },
   { id: 'klantenservice',label: 'Klantenservice',       icon: <Headphones className="w-4 h-4" /> },
 ];
 
@@ -72,8 +68,6 @@ const MENU_CARDS: {
   { id: 'beveiliging',     icon: <Shield className="w-5 h-5" />,     title: 'Inloggen & beveiliging', sub: 'Beveilig je account' },
   { id: 'betaalmethoden',  icon: <CreditCard className="w-5 h-5" />, title: 'Betaalmethoden',          sub: 'Beheer je betaalmethoden' },
   { id: 'favorieten',      icon: <Star className="w-5 h-5" />,       title: 'Favoriete locaties',      sub: 'Sla je favoriete adressen op' },
-  { id: 'kortingen',       icon: <Tag className="w-5 h-5" />,        title: 'Mijn kortingen',          sub: 'Bekijk je kortingen en acties' },
-  { id: 'bedrijf',         icon: <Building2 className="w-5 h-5" />,  title: 'Bedrijf aanmaken',        sub: 'Voor zakelijk vervoer' },
   { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: 'Klantenservice',          sub: 'Hulp nodig? Neem contact met ons op', span: true },
 ];
 
@@ -314,58 +308,146 @@ function MainDashboard({ user, onNavigate, onContact }: { user: AuthUser; onNavi
 
       {/* ── Profile Hero Banner ── */}
       <div
-        className="relative rounded-[24px] overflow-hidden text-white min-h-[160px] flex items-center"
-        style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY2} 60%, #001a40 100%)` }}
+        className="relative overflow-hidden text-white flex items-center select-none"
+        style={{
+          background: '#0d0d0d',
+          minHeight: '128px',
+          borderRadius: '20px',
+        }}
       >
-        {/* Decorative glow */}
-        <div
-          className="absolute inset-0 opacity-20 pointer-events-none"
-          style={{ background: `radial-gradient(circle at 70% 50%, ${YELLOW}, transparent 55%)` }}
-        />
-        {/* Taxi car image */}
-        <img
-          src="/dashboard-taxi.png"
-          alt="Taxi mooo"
-          className="absolute right-0 bottom-0 h-full object-contain object-right-bottom opacity-90 pointer-events-none select-none"
-          style={{ maxWidth: '45%' }}
-        />
-        {/* Route dots decoration */}
-        <div className="absolute top-6 right-[42%] flex flex-col items-center gap-2 opacity-40">
-          <MapPin className="w-4 h-4 text-white" />
-          <div className="w-px h-10 bg-white/60 border-dashed" />
-          <MapPin className="w-4 h-4 text-white" />
-        </div>
+        {/* ── Dark metallic gradient base ── */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(100deg, #111 0%, #1c1c1c 45%, #0e0e0e 100%)' }} />
 
-        <div className="relative z-10 p-6 sm:p-8 flex items-center gap-5">
+        {/* ── Left yellow outer arc (like the image circle behind avatar) ── */}
+        <div className="absolute pointer-events-none"
+          style={{
+            left: '-10px', top: '50%', transform: 'translateY(-50%)',
+            width: '160px', height: '160px',
+            borderRadius: '50%',
+            border: `6px solid ${YELLOW}`,
+            opacity: 0.9,
+          }}
+        />
+
+        {/* ── Diagonal yellow slashes — center-left area ── */}
+        {/* Slash 1 */}
+        <div className="absolute pointer-events-none"
+          style={{
+            left: '28%', top: 0, width: '6px', height: '100%',
+            background: YELLOW,
+            transform: 'skewX(-18deg)',
+            opacity: 0.9,
+          }}
+        />
+        {/* Slash 2 */}
+        <div className="absolute pointer-events-none"
+          style={{
+            left: 'calc(28% + 18px)', top: 0, width: '3px', height: '100%',
+            background: YELLOW,
+            transform: 'skewX(-18deg)',
+            opacity: 0.6,
+          }}
+        />
+
+        {/* ── Checkered flag area ── */}
+        <div className="absolute pointer-events-none"
+          style={{
+            left: '32%', top: '50%', transform: 'translateY(-50%)',
+            width: '100px', height: '72px',
+            backgroundImage: `
+              linear-gradient(45deg, #333 25%, transparent 25%),
+              linear-gradient(-45deg, #333 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #333 75%),
+              linear-gradient(-45deg, transparent 75%, #333 75%)
+            `,
+            backgroundSize: '18px 18px',
+            backgroundPosition: '0 0, 0 9px, 9px -9px, -9px 0px',
+            opacity: 0.55,
+            borderRadius: '4px',
+          }}
+        />
+
+        {/* ── Right side golden diagonal accents ── */}
+        <div className="absolute pointer-events-none"
+          style={{
+            right: '12%', top: 0, width: '8px', height: '100%',
+            background: YELLOW,
+            transform: 'skewX(-15deg)',
+            opacity: 0.85,
+          }}
+        />
+        <div className="absolute pointer-events-none"
+          style={{
+            right: 'calc(12% + 18px)', top: 0, width: '3px', height: '100%',
+            background: YELLOW,
+            transform: 'skewX(-15deg)',
+            opacity: 0.45,
+          }}
+        />
+
+        {/* ── CONTENT ── */}
+        <div className="relative z-10 flex items-center gap-0 w-full p-2 sm:p-3">
+
           {/* Avatar */}
-          <div className="relative shrink-0">
-            <div
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center font-black text-xl sm:text-2xl border-2 border-white/30 shadow-xl"
-              style={{ background: 'rgba(255,184,0,0.18)', color: YELLOW }}
-            >
-              {getInitials(user.name)}
+          <div className="relative shrink-0 mx-4 sm:mx-5">
+            {/* Outer yellow ring */}
+            <div style={{
+              width: '76px', height: '76px', borderRadius: '50%',
+              background: `conic-gradient(${YELLOW} 0deg 300deg, transparent 300deg 360deg)`,
+              padding: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                width: '70px', height: '70px', borderRadius: '50%',
+                background: '#181818',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: YELLOW, fontWeight: 900, fontSize: '22px',
+              }}>
+                {getInitials(user.name)}
+              </div>
             </div>
-            <button
-              className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow"
-              style={{ color: NAVY2 }}
-              aria-label="Profiel bewerken"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
+            {/* Green online dot */}
+            <span className="absolute"
+              style={{
+                bottom: '4px', right: '4px',
+                width: '16px', height: '16px',
+                borderRadius: '50%',
+                background: '#16a34a',
+                border: '2.5px solid #0d0d0d',
+                display: 'block',
+              }}
+            />
           </div>
 
-          {/* Info */}
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">{user.name}</h2>
-            <p className="flex items-center gap-1.5 text-xs text-white/70 mt-0.5">
-              <Mail className="w-3 h-3" /> {user.email}
+          {/* Vertical divider */}
+          <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.15)', margin: '16px 0' }} />
+
+          {/* Text block */}
+          <div className="min-w-0 px-4 sm:px-5 py-4">
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: '4px' }}>
+              {user.name}
+            </h2>
+            <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.55)', marginBottom: '10px' }}>
+              <Mail className="w-3 h-3 shrink-0" />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </span>
             </p>
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mt-2"
-              style={{ background: YELLOW, color: NAVY }}
-            >
-              👑 Premium klant
-            </span>
+            {/* Premium badge — matches image exactly */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: YELLOW,
+              color: '#000',
+              fontWeight: 900,
+              fontSize: '13px',
+              padding: '6px 18px',
+              borderRadius: '999px',
+              boxShadow: '0 2px 10px rgba(255,184,0,0.4)',
+              letterSpacing: '0.01em',
+            }}>
+              <span style={{ fontSize: '15px' }}>👑</span>
+              Premium klant
+            </div>
           </div>
         </div>
       </div>
@@ -421,41 +503,6 @@ function MainDashboard({ user, onNavigate, onContact }: { user: AuthUser; onNavi
             <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#FFB800] transition-colors shrink-0" />
           </div>
         ))}
-      </div>
-
-      {/* ── Referral Banner ── */}
-      <div
-        className="relative overflow-hidden rounded-2xl"
-        style={{ background: YELLOW }}
-      >
-        <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
-          {/* Gift */}
-          <img src="/dashboard-gift.png" alt="Gift" className="w-16 h-16 object-contain shrink-0 drop-shadow-md" />
-
-          {/* Text */}
-          <div className="flex-1 min-w-0">
-            <h4 className="font-black text-base sm:text-lg text-[#001331] leading-tight">
-              Verdien <span className="underline">€&nbsp;30</span> tegoed
-            </h4>
-            <p className="text-xs text-[#001331]/70 font-medium mt-0.5">
-              Nodig 6 vrienden uit en ontvang € 30 tegoed!
-            </p>
-          </div>
-
-          {/* Button */}
-          <button
-            onClick={() => {
-              try { navigator.clipboard.writeText('https://taximooo.nl/invite'); } catch {}
-              alert('Jouw Taxi mooo uitnodigingslink is gekopieerd!');
-            }}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap shadow-sm transition hover:opacity-90 cursor-pointer shrink-0"
-            style={{ background: NAVY, color: YELLOW }}
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Uitnodigen</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
 
       {/* ── Recent Rides ── */}
@@ -563,10 +610,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
         return <SectionPlaceholder title="Betaalmethoden" description="Voeg iDEAL, creditcard of andere betaalmethoden toe en beheer ze." icon={<CreditCard />} />;
       case 'favorieten':
         return <SectionPlaceholder title="Favoriete locaties" description="Sla je thuis, werkadres en vliegveld op voor sneller boeken." icon={<Star />} />;
-      case 'kortingen':
-        return <SectionPlaceholder title="Mijn kortingen" description="Bekijk al je actieve kortingscodes en promoties." icon={<Tag />} />;
-      case 'bedrijf':
-        return <SectionPlaceholder title="Bedrijf aanmaken" description="Maak een zakelijk account aan voor facturen en bedrijfsritten." icon={<Building2 />} />;
       case 'klantenservice':
         return <KlantenserviceSection onContact={onNavigateToContact} />;
       default:
@@ -688,22 +731,17 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
               </button>
             </div>
 
-            {/* Windmill art */}
-            <div className="mt-4 -mx-4 -mb-6 overflow-hidden rounded-b-none opacity-80">
-              <img
-                src="/dashboard-windmill.png"
-                alt=""
-                className="w-full object-contain object-bottom select-none pointer-events-none"
-                style={{ maxHeight: '200px' }}
-              />
-            </div>
-
-            {/* Tagline */}
-            <div
-              className="text-center text-xs font-bold text-white/80 pb-2 relative z-10"
-              style={{ marginTop: '-20px' }}
-            >
-              Altijd veilig, snel en comfortabel
+            {/* Brand tagline badge */}
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <div className="px-3.5 py-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-black text-[#FFB800] tracking-wider uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFB800] animate-pulse" />
+                  Taxi mooo
+                </div>
+                <p className="text-[11px] text-white/60 mt-1 font-medium leading-relaxed">
+                  Altijd veilig, snel en comfortabel
+                </p>
+              </div>
             </div>
           </div>
         </aside>

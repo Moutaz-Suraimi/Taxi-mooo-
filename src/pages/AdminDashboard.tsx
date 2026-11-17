@@ -348,10 +348,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
       <div className="flex-1 flex flex-col lg:flex-row">
 
         {/* ── Sidebar ── */}
-        <aside className="w-full lg:w-64 bg-[#001331] text-white border-r border-white/10 p-4 lg:p-6 shrink-0 flex lg:flex-col justify-between">
-          <div className="w-full space-y-6">
+        <aside className="w-full lg:w-72 bg-[#001331] text-white border-b lg:border-b-0 lg:border-r border-white/10 p-3 sm:p-4 lg:p-5 shrink-0 flex flex-col justify-between">
+          <div className="w-full space-y-4">
+            {/* Header label in sidebar */}
+            <div className="hidden lg:flex items-center justify-between px-2 pt-1 pb-2 border-b border-white/10">
+              <span className="text-[11px] font-black uppercase tracking-wider text-white/50">
+                Beheer & Navigatie
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Systeem Live" />
+            </div>
+
             {/* Navigation Tabs */}
-            <nav className="flex lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0">
+            <nav className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible no-scrollbar pb-1 lg:pb-0">
               {[
                 { id: 'orders' as AdminTab, label: 'Ritorders', icon: <Car className="w-4 h-4" />, badge: newOrdersCount },
                 { id: 'overview' as AdminTab, label: 'Overzicht & KPI', icon: <TrendingUp className="w-4 h-4" /> },
@@ -364,19 +372,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`group w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none text-start shrink-0 lg:shrink ${
                       isActive
-                        ? 'bg-[#FFB800] text-[#001331] shadow-md shadow-[#FFB800]/25 font-black'
+                        ? 'bg-[#FFB800] text-[#001331] shadow-md shadow-[#FFB800]/25 font-black ring-1 ring-[#FFB800]'
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      {tab.icon}
-                      <span>{tab.label}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110 text-white/70'}`}>
+                        {tab.icon}
+                      </span>
+                      <span className="truncate">{tab.label}</span>
                     </div>
                     {Boolean(tab.badge && tab.badge > 0) && (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                        isActive ? 'bg-[#001331] text-white' : 'bg-[#FFB800] text-[#001331]'
+                      <span className={`shrink-0 ms-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-black flex items-center justify-center transition-colors ${
+                        isActive
+                          ? 'bg-[#001331] text-white'
+                          : 'bg-[#FFB800] text-[#001331] shadow-xs'
                       }`}>
                         {tab.badge}
                       </span>
@@ -388,18 +400,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           </div>
 
           {/* Quick stats mini card in sidebar */}
-          <div className="hidden lg:block pt-6 border-t border-white/10 text-xs text-blue-200/70 space-y-2">
-            <div className="flex justify-between">
-              <span>Totaal orders:</span>
-              <span className="font-bold text-white">{orders.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Totale omzet:</span>
-              <span className="font-bold text-[#FFB800]">€ {totalRevenue.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Chauffeurs actief:</span>
-              <span className="font-bold text-green-400">{drivers.filter(d => d.status !== 'offline').length} / {drivers.length}</span>
+          <div className="hidden lg:block mt-6 pt-5 border-t border-white/10">
+            <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xs space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/60">Totaal orders</span>
+                <span className="font-extrabold text-white bg-white/10 px-2 py-0.5 rounded-md">{orders.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/60">Totale omzet</span>
+                <span className="font-black text-[#FFB800]">€ {totalRevenue.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/60">Chauffeurs actief</span>
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {drivers.filter(d => d.status !== 'offline').length} / {drivers.length}
+                </span>
+              </div>
             </div>
           </div>
         </aside>

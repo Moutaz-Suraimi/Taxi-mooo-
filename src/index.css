@@ -135,9 +135,13 @@
 .duration-200       { animation-duration: 200ms; }
 
 /* ═══════════════════════════════════════════════════
-   SCROLLBAR
+   SCROLLBAR & UTILITIES
 ═══════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track  { background: var(--navy); }
-::-webkit-scrollbar-thumb  { background: var(--yellow); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--yellow-dark); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255, 184, 0, 0.3); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--yellow); }
+
+/* Hide scrollbar utility for clean responsive navs */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
