@@ -315,7 +315,7 @@ function MainDashboard({ user, onNavigate, onContact }: { user: AuthUser; onNavi
       {/* ── Profile Hero Banner ── */}
       <div
         className="relative rounded-[24px] overflow-hidden text-white min-h-[160px] flex items-center"
-        style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY2} 60%, #1a0a5e 100%)` }}
+        style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY2} 60%, #001a40 100%)` }}
       >
         {/* Decorative glow */}
         <div

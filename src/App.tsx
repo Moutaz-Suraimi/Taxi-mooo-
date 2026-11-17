@@ -28,7 +28,9 @@ import { ClientDashboard } from './pages/ClientDashboard';
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<PageType>(() => {
-    return window.location.hash === '#admin' ? 'admin' : 'home';
+    if (window.location.hash === '#admin') return 'admin';
+    if (window.location.hash === '#dashboard') return 'dashboard';
+    return 'home';
   });
   const [isFareModalOpen, setIsFareModalOpen] = useState(false);
   const [currentBookingData, setCurrentBookingData] = useState<BookingData | null>(null);
@@ -53,11 +55,13 @@ export function App() {
     }, 60);
   };
 
-  // Listen to hash change for #admin route
+  // Listen to hash change for #admin and #dashboard routes
   useEffect(() => {
     const handleHash = () => {
       if (window.location.hash === '#admin') {
         setCurrentPage('admin');
+      } else if (window.location.hash === '#dashboard') {
+        setCurrentPage('dashboard');
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -82,7 +86,12 @@ export function App() {
   if (currentPage === 'dashboard') {
     return (
       <ClientDashboard
-        onExit={() => navigateTo('home')}
+        onExit={() => {
+          if (window.location.hash === '#dashboard') {
+            window.location.hash = '';
+          }
+          navigateTo('home');
+        }}
         onOpenAccount={() => setIsAccountModalOpen(true)}
         onNavigateToContact={() => navigateTo('contact')}
       />
