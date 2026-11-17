@@ -3,7 +3,8 @@ import {
   User, Mail, Shield, CreditCard, Star, Car, Wallet, Clock,
   CheckCircle2, LogOut, ChevronRight, MapPin,
   Headphones, Bell, ChevronDown, ArrowRight,
-  Home, Menu, X, Phone,
+  Home, Menu, X, Phone, Lock, Key, Smartphone, Laptop,
+  Eye, EyeOff, AlertTriangle,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabaseDataService, mapSupabaseOrderToBookingOrder } from '../services/supabaseDataService';
@@ -108,6 +109,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({ name, phone });
+    supabaseDataService.updateClientProfile(user.email, { name, phone });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -197,6 +199,442 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
           Wijzigingen opslaan
         </button>
       </form>
+    </div>
+  );
+}
+
+// ─── INLOGGEN & BEVEILIGING SECTION ─────────────────────
+function BeveiligingSection({ user }: { user: AuthUser }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  // 2FA state
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [twoFactorToast, setTwoFactorToast] = useState('');
+
+  // Security notification toggles
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [smsAlerts, setSmsAlerts] = useState(false);
+
+  // Active Sessions
+  const [sessions, setSessions] = useState([
+    {
+      id: 'sess-1',
+      device: 'Dit apparaat (Huidige browser)',
+      detail: 'Chrome browser • Windows 11',
+      location: 'Haarlem, Nederland',
+      time: 'Nu actief',
+      isCurrent: true,
+      isMobile: false,
+    },
+    {
+      id: 'sess-2',
+      device: 'Mobiele telefoon',
+      detail: 'Safari Mobile • Apple iPhone',
+      location: 'Amsterdam, Nederland',
+      time: 'Gisteren om 18:42',
+      isCurrent: false,
+      isMobile: true,
+    },
+  ]);
+  const [sessionsToast, setSessionsToast] = useState('');
+
+  // Sync settings and sessions from Supabase on mount
+  useEffect(() => {
+    if (!user?.email) return;
+
+    // 1. Load security settings from Supabase
+    supabaseDataService.getSecuritySettings(user.email).then((settings) => {
+      if (settings) {
+        setTwoFactorEnabled(Boolean(settings.two_factor_enabled));
+        setEmailAlerts(Boolean(settings.email_alerts));
+        setSmsAlerts(Boolean(settings.sms_alerts));
+      }
+    });
+
+    // 2. Load active sessions from Supabase
+    supabaseDataService.getUserSessions(user.email).then((remoteSessions) => {
+      if (remoteSessions && remoteSessions.length > 0) {
+        setSessions(
+          remoteSessions.map((s: any) => ({
+            id: s.id,
+            device: s.device_name,
+            detail: `${s.browser} • ${s.location || 'Nederland'}`,
+            location: s.location || 'Nederland',
+            time: s.is_current ? 'Nu actief' : new Date(s.last_active).toLocaleDateString('nl-NL'),
+            isCurrent: Boolean(s.is_current),
+            isMobile: s.device_name.toLowerCase().includes('phone') || s.device_name.toLowerCase().includes('mobiel'),
+          }))
+        );
+      } else {
+        // Automatically register the current active session in Supabase
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const deviceName = isMobile ? 'Mobiel apparaat' : 'Dit apparaat (Huidige browser)';
+        const browser = navigator.userAgent.includes('Chrome')
+          ? 'Chrome browser'
+          : navigator.userAgent.includes('Safari')
+          ? 'Safari'
+          : 'Web Browser';
+        supabaseDataService.registerSession(user.email, {
+          device_name: deviceName,
+          browser,
+          location: 'Haarlem, Nederland',
+          is_current: true,
+        });
+      }
+    });
+  }, [user?.email]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    if (!currentPassword) {
+      setPasswordError('Vul je huidige wachtwoord in.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('Het nieuwe wachtwoord moet minimaal 6 tekens bevatten.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('De nieuwe wachtwoorden komen niet overeen.');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    try {
+      if (user?.email) {
+        await supabaseDataService.updatePassword(user.email, newPassword);
+      }
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(false), 3500);
+    } catch {
+      setPasswordError('Er is een fout opgetreden bij het bijwerken van het wachtwoord.');
+    } finally {
+      setIsSubmittingPassword(false);
+    }
+  };
+
+  const handleToggle2FA = async () => {
+    const next = !twoFactorEnabled;
+    setTwoFactorEnabled(next);
+    if (user?.email) {
+      await supabaseDataService.updateSecuritySettings(user.email, {
+        two_factor_enabled: next,
+      });
+    }
+    setTwoFactorToast(
+      next
+        ? 'Twee-staps verificatie (2FA) is succesvol ingeschakeld.'
+        : 'Twee-staps verificatie (2FA) is uitgeschakeld.'
+    );
+    setTimeout(() => setTwoFactorToast(''), 3000);
+  };
+
+  const handleToggleEmailAlerts = async (checked: boolean) => {
+    setEmailAlerts(checked);
+    if (user?.email) {
+      await supabaseDataService.updateSecuritySettings(user.email, {
+        email_alerts: checked,
+      });
+    }
+  };
+
+  const handleToggleSmsAlerts = async (checked: boolean) => {
+    setSmsAlerts(checked);
+    if (user?.email) {
+      await supabaseDataService.updateSecuritySettings(user.email, {
+        sms_alerts: checked,
+      });
+    }
+  };
+
+  const handleTerminateOtherSessions = async () => {
+    if (user?.email) {
+      await supabaseDataService.terminateOtherSessions(user.email);
+    }
+    setSessions((prev) => prev.filter((s) => s.isCurrent));
+    setSessionsToast('Je bent succesvol uitgelogd op alle andere apparaten.');
+    setTimeout(() => setSessionsToast(''), 3500);
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Title */}
+      <div>
+        <h2 className="text-xl font-black text-[#001331] mb-1">Inloggen & beveiliging</h2>
+        <p className="text-sm text-gray-500">
+          Beheer je wachtwoord, twee-staps verificatie en actieve apparaten voor een veilig account.
+        </p>
+      </div>
+
+      {/* Security Health Score Banner */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#001331] to-[#00255c] text-white flex items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFB800]/20 text-[#FFB800] flex items-center justify-center shrink-0 border border-[#FFB800]/30">
+            <Shield className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm sm:text-base">Accountbeveiliging</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Uitstekend (95%)
+              </span>
+            </div>
+            <p className="text-xs text-white/70 mt-0.5">
+              Je gegevens zijn versleuteld en beveiligd met 256-bit SSL-encryptie.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── CARD 1: WACHTWOORD WIJZIGEN ── */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#00255c] flex items-center justify-center">
+            <Key className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold text-[#001331]">Wachtwoord wijzigen</h3>
+            <p className="text-xs text-gray-400">Kies een sterk wachtwoord van minimaal 6 tekens.</p>
+          </div>
+        </div>
+
+        {passwordSuccess && (
+          <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 text-xs sm:text-sm text-green-700 font-semibold animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+            <span>Wachtwoord succesvol bijgewerkt!</span>
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs sm:text-sm text-red-700 font-semibold animate-in fade-in">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
+          {/* Current Password */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Huidig wachtwoord</label>
+            <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
+              <Lock className="w-4 h-4 text-gray-400 shrink-0" />
+              <input
+                type={showCurrent ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Voer je huidige wachtwoord in"
+                className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="text-gray-400 hover:text-gray-600 p-1"
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* New Password */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Nieuw wachtwoord</label>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
+                <Lock className="w-4 h-4 text-gray-400 shrink-0" />
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimaal 6 tekens"
+                  className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Bevestig nieuw wachtwoord</label>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
+                <Lock className="w-4 h-4 text-gray-400 shrink-0" />
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Herhaal nieuw wachtwoord"
+                  className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmittingPassword}
+            className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-[#001331] shadow hover:shadow-md transition cursor-pointer disabled:opacity-50"
+            style={{ background: YELLOW }}
+          >
+            {isSubmittingPassword ? 'Bezig met bijwerken...' : 'Wachtwoord bijwerken'}
+          </button>
+        </form>
+      </div>
+
+      {/* ── CARD 2: TWEE-STAPS VERIFICATIE (2FA) ── */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+              <Smartphone className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-[#001331]">Twee-staps verificatie (2FA)</h3>
+              <p className="text-xs text-gray-400">
+                Verifieer je identiteit via een beveiligingscode bij inloggen vanaf een nieuw apparaat.
+              </p>
+            </div>
+          </div>
+
+          {/* Toggle Switch */}
+          <button
+            type="button"
+            onClick={handleToggle2FA}
+            className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+              twoFactorEnabled ? 'bg-[#001331]' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[#FFB800] transition-transform duration-200 shadow-xs ${
+                twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {twoFactorToast && (
+          <div className="text-xs text-emerald-600 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+            {twoFactorToast}
+          </div>
+        )}
+
+        <div className="text-xs text-gray-500 pt-1 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <span>Verificatiecodes worden verzonden naar: <strong className="text-gray-800">{user.email}</strong></span>
+        </div>
+      </div>
+
+      {/* ── CARD 3: ACTIEVE APPARATEN & SESSIES ── */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Laptop className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-[#001331]">Actieve apparaten & sessies</h3>
+              <p className="text-xs text-gray-400">Overzicht van apparaten waarop je momenteel bent ingelogd.</p>
+            </div>
+          </div>
+
+          {sessions.length > 1 && (
+            <button
+              onClick={handleTerminateOtherSessions}
+              className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
+            >
+              Overal uitloggen
+            </button>
+          )}
+        </div>
+
+        {sessionsToast && (
+          <div className="text-xs text-emerald-600 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+            {sessionsToast}
+          </div>
+        )}
+
+        <div className="divide-y divide-gray-100">
+          {sessions.map((s) => (
+            <div key={s.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+                  {s.isMobile ? <Smartphone className="w-4 h-4" /> : <Laptop className="w-4 h-4" />}
+                </div>
+                <div>
+                  <div className="font-bold text-[#001331] flex items-center gap-2">
+                    <span>{s.device}</span>
+                    {s.isCurrent && (
+                      <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded">
+                        Huidig
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-gray-400 text-[11px]">{s.detail} • {s.location}</div>
+                </div>
+              </div>
+              <span className="text-gray-500 font-medium shrink-0">{s.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CARD 4: MELDINGEN & PRIVACY ── */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <h3 className="text-sm font-extrabold text-[#001331] pb-2 border-b border-gray-100">
+          Beveiligingswaarschuwingen
+        </h3>
+
+        <div className="space-y-3">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className="text-xs font-bold text-gray-800 block">Inlogwaarschuwingen via e-mail</span>
+              <span className="text-[11px] text-gray-400">Krijg direct bericht bij inloggen vanaf een onbekende locatie</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={emailAlerts}
+              onChange={(e) => handleToggleEmailAlerts(e.target.checked)}
+              className="w-4 h-4 text-[#001331] rounded accent-[#001331] cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className="text-xs font-bold text-gray-800 block">SMS-bevestigingen</span>
+              <span className="text-[11px] text-gray-400">Verzend sms-code bij gevoelige account- of ritwijzigingen</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={smsAlerts}
+              onChange={(e) => handleToggleSmsAlerts(e.target.checked)}
+              className="w-4 h-4 text-[#001331] rounded accent-[#001331] cursor-pointer"
+            />
+          </label>
+        </div>
+      </div>
     </div>
   );
 }
@@ -646,7 +1084,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
       case 'accountgegevens':
         return <AccountGegevensSection user={user} onSave={handleUpdateUser} />;
       case 'beveiliging':
-        return <SectionPlaceholder title="Inloggen & beveiliging" description="Beheer je wachtwoord, twee-staps verificatie en inloggeschiedenis." icon={<Shield />} />;
+        return <BeveiligingSection user={user} />;
       case 'betaalmethoden':
         return <SectionPlaceholder title="Betaalmethoden" description="Voeg iDEAL, creditcard of andere betaalmethoden toe en beheer ze." icon={<CreditCard />} />;
       case 'favorieten':

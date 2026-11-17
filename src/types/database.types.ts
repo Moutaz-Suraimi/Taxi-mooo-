@@ -306,6 +306,153 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_security_settings: {
+        Row: {
+          id: string;
+          user_email: string;
+          two_factor_enabled: boolean;
+          email_alerts: boolean;
+          sms_alerts: boolean;
+          last_password_change: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_email: string;
+          two_factor_enabled?: boolean;
+          email_alerts?: boolean;
+          sms_alerts?: boolean;
+          last_password_change?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_email?: string;
+          two_factor_enabled?: boolean;
+          email_alerts?: boolean;
+          sms_alerts?: boolean;
+          last_password_change?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_sessions: {
+        Row: {
+          id: string;
+          user_email: string;
+          device_name: string;
+          browser: string;
+          ip_address: string | null;
+          location: string;
+          is_current: boolean;
+          last_active: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_email: string;
+          device_name: string;
+          browser: string;
+          ip_address?: string | null;
+          location?: string;
+          is_current?: boolean;
+          last_active?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_email?: string;
+          device_name?: string;
+          browser?: string;
+          ip_address?: string | null;
+          location?: string;
+          is_current?: boolean;
+          last_active?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      client_accounts: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          password_hash: string;
+          role: string;
+          wallet_balance: number;
+          rides_count: number;
+          rating: number;
+          is_premium: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          password_hash: string;
+          role?: string;
+          wallet_balance?: number;
+          rides_count?: number;
+          rating?: number;
+          is_premium?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string;
+          phone?: string;
+          password_hash?: string;
+          role?: string;
+          wallet_balance?: number;
+          rides_count?: number;
+          rating?: number;
+          is_premium?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_accounts: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          password_hash: string;
+          role: string;
+          is_active: boolean;
+          last_login: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name?: string;
+          email: string;
+          password_hash: string;
+          role?: string;
+          is_active?: boolean;
+          last_login?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string;
+          password_hash?: string;
+          role?: string;
+          is_active?: boolean;
+          last_login?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

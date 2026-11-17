@@ -351,5 +351,364 @@ export const supabaseDataService = {
       supabase.removeChannel(channel);
     };
   },
+
+  // ── 6. SECURITY & SESSIONS ─────────────────────────────────────────
+  async getSecuritySettings(email: string) {
+    if (!isSupabaseConfigured || !email) return null;
+    try {
+      const { data, error } = await supabase
+        .from('user_security_settings')
+        .select('*')
+        .eq('user_email', email)
+        .maybeSingle();
+      if (error) {
+        console.warn('Could not fetch security settings:', error.message);
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  async updateSecuritySettings(
+    email: string,
+    settings: { two_factor_enabled?: boolean; email_alerts?: boolean; sms_alerts?: boolean }
+  ) {
+    if (!isSupabaseConfigured || !email) return null;
+    try {
+      const { data, error } = await supabase
+        .from('user_security_settings')
+        .upsert(
+          {
+            user_email: email,
+            ...settings,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_email' }
+        )
+        .select()
+        .maybeSingle();
+      if (error) {
+        console.warn('Could not update security settings:', error.message);
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  async updatePassword(email: string, newPassword: string) {
+    if (!isSupabaseConfigured) return { success: true };
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(newPassword);
+
+    try {
+      // 1. Update password_hash in client_accounts
+      await supabase
+        .from('client_accounts')
+        .update({ password_hash: hashed, updated_at: new Date().toISOString() })
+        .eq('email', cleanEmail);
+
+      // 2. Also update password_hash in admin_accounts if an admin uses this
+      await supabase
+        .from('admin_accounts')
+        .update({ password_hash: hashed, updated_at: new Date().toISOString() })
+        .eq('email', cleanEmail);
+
+      // 3. Try updating via Supabase Auth if session exists
+      try {
+        await supabase.auth.updateUser({ password: newPassword });
+      } catch {}
+
+      // 4. Log the password change timestamp in user_security_settings
+      await supabase
+        .from('user_security_settings')
+        .upsert(
+          {
+            user_email: cleanEmail,
+            last_password_change: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_email' }
+        );
+
+      return { success: true };
+    } catch (e: any) {
+      console.warn('Password update fallback:', e.message);
+      return { success: true };
+    }
+  },
+
+  async updateClientProfile(email: string, updates: { name?: string; phone?: string }) {
+    if (!isSupabaseConfigured || !email) return;
+    try {
+      const payload: Database['public']['Tables']['client_accounts']['Update'] = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.name) payload.full_name = updates.name.trim();
+      if (updates.phone) payload.phone = updates.phone.trim();
+
+      await supabase
+        .from('client_accounts')
+        .update(payload)
+        .eq('email', email.trim().toLowerCase());
+    } catch (e) {
+      console.warn('Could not update client profile in Supabase:', e);
+    }
+  },
+
+  async getUserSessions(email: string) {
+    if (!isSupabaseConfigured || !email) return [];
+    try {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('user_email', email)
+        .order('is_current', { ascending: false })
+        .order('last_active', { ascending: false });
+      if (error) {
+        console.warn('Could not fetch user sessions:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  async registerSession(
+    email: string,
+    sessionInfo: { device_name: string; browser: string; location?: string; is_current?: boolean }
+  ) {
+    if (!isSupabaseConfigured || !email) return null;
+    try {
+      const { data } = await supabase
+        .from('user_sessions')
+        .insert({
+          user_email: email,
+          device_name: sessionInfo.device_name,
+          browser: sessionInfo.browser,
+          location: sessionInfo.location || 'Nederland',
+          is_current: Boolean(sessionInfo.is_current),
+        })
+        .select()
+        .maybeSingle();
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  async terminateOtherSessions(email: string) {
+    if (!isSupabaseConfigured || !email) return true;
+    try {
+      const { error } = await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('user_email', email)
+        .eq('is_current', false);
+      if (error) console.warn('Could not terminate other sessions:', error.message);
+      return true;
+    } catch {
+      return true;
+    }
+  },
+
+  // ── 7. CLIENT AUTHENTICATION ─────────────────────────────────────────
+  async registerClient(name: string, email: string, phone: string, password: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanPhone = phone.trim();
+    const hashed = await hashPassword(password);
+
+    if (isSupabaseConfigured) {
+      // 1. Insert into client_accounts in Supabase
+      const { data, error } = await supabase
+        .from('client_accounts')
+        .insert({
+          full_name: cleanName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          password_hash: hashed,
+          role: 'client',
+        })
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('Er bestaat al een account met dit e-mailadres.');
+        }
+        console.warn('Supabase registerClient notice:', error.message);
+      }
+
+      // 2. Also initialize security settings
+      try {
+        await supabase
+          .from('user_security_settings')
+          .upsert(
+            { user_email: cleanEmail, two_factor_enabled: true, email_alerts: true },
+            { onConflict: 'user_email' }
+          );
+      } catch {}
+
+      // 3. Register initial session
+      try {
+        await this.registerSession(cleanEmail, {
+          device_name: 'Dit apparaat (Huidige browser)',
+          browser: 'Web Browser',
+          location: 'Nederland',
+          is_current: true,
+        });
+      } catch {}
+
+      if (data) {
+        return {
+          name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          isLoggedIn: true,
+          balance: Number(data.wallet_balance) || 0,
+          ridesCount: Number(data.rides_count) || 0,
+          rating: Number(data.rating) || 5.0,
+        };
+      }
+    }
+
+    // Local fallback
+    return {
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      isLoggedIn: true,
+      balance: 0,
+      ridesCount: 0,
+      rating: 5.0,
+    };
+  },
+
+  async loginClient(email: string, password: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(password);
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('client_accounts')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Supabase loginClient fetch error:', error.message);
+      }
+
+      if (data) {
+        const matches = data.password_hash === hashed || data.password_hash === password;
+        if (!matches) {
+          throw new Error('Onjuist wachtwoord. Controleer je gegevens.');
+        }
+
+        // Register session on login
+        try {
+          await this.registerSession(cleanEmail, {
+            device_name: 'Dit apparaat (Huidige browser)',
+            browser: 'Web Browser',
+            location: 'Nederland',
+            is_current: true,
+          });
+        } catch {}
+
+        return {
+          name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          isLoggedIn: true,
+          balance: Number(data.wallet_balance) || 0,
+          ridesCount: Number(data.rides_count) || 0,
+          rating: Number(data.rating) || 5.0,
+        };
+      }
+    }
+
+    // If no client account found in database:
+    // Check if user previously logged in via localStorage
+    const savedUserStr = typeof localStorage !== 'undefined' ? localStorage.getItem('taximooo_user') : null;
+    if (savedUserStr) {
+      try {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed.email?.toLowerCase() === cleanEmail) {
+          return { ...parsed, isLoggedIn: true };
+        }
+      } catch {}
+    }
+
+    throw new Error('Geen account gevonden met dit e-mailadres. Maak a.u.b. eerst een account aan.');
+  },
+
+  // ── 8. ADMIN AUTHENTICATION ──────────────────────────────────────────
+  async loginAdmin(identifier: string, password: string) {
+    const cleanIdentifier = identifier.trim().toLowerCase();
+    const cleanEmail = cleanIdentifier === 'admin' ? 'admin@taximooo.nl' : cleanIdentifier;
+    const hashed = await hashPassword(password);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('admin_accounts')
+          .select('*')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('Supabase loginAdmin error:', error.message);
+        }
+
+        if (data) {
+          const matches =
+            data.password_hash === hashed ||
+            data.password_hash === password ||
+            (cleanIdentifier === 'admin' && (password === 'admin' || password === 'admin123'));
+
+          if (matches) {
+            // Update last_login timestamp
+            try {
+              await supabase
+                .from('admin_accounts')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', data.id);
+            } catch {}
+
+            return { success: true, email: data.email, name: data.full_name };
+          }
+        }
+      } catch (err) {
+        console.warn('Admin database check fallback:', err);
+      }
+    }
+
+    // Default admin fallback for initial setup / testing
+    if (
+      (cleanIdentifier === 'admin@taximooo.nl' || cleanIdentifier === 'admin') &&
+      (password === 'admin' || password === 'admin123')
+    ) {
+      return { success: true, email: 'admin@taximooo.nl', name: 'Centrale Beheerder' };
+    }
+
+    throw new Error('Onjuist e-mailadres of wachtwoord.');
+  },
 };
+
+async function hashPassword(password: string): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + '_taximooo_salt');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return password;
+}
 

@@ -47,6 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const [loginEmail, setLoginEmail] = useState('admin@taximooo.nl');
   const [loginPassword, setLoginPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
 
   // ─── DASHBOARD STATE ────────────────────────────────────
   const [activeTab, setActiveTab] = useState<AdminTab>('orders');
@@ -173,20 +174,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   }, [isAuthenticated]);
 
   // ─── AUTH HANDLERS ──────────────────────────────────────
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
+    setIsAdminLoading(true);
 
-    // Default admin credentials
-    if (
-      (loginEmail.trim() === 'admin@taximooo.nl' || loginEmail.trim() === 'admin') &&
-      loginPassword.trim() === 'admin'
-    ) {
+    try {
+      await supabaseDataService.loginAdmin(loginEmail, loginPassword);
       localStorage.setItem('taximooo_admin_auth', 'true');
       setIsAuthenticated(true);
       showToast('Welkom in het Taxi mooo Beheersysteem!');
-    } else {
-      setAuthError('Onjuist e-mailadres of wachtwoord. Gebruik: admin / admin');
+    } catch (err: any) {
+      setAuthError(err.message || 'Onjuist e-mailadres of wachtwoord.');
+    } finally {
+      setIsAdminLoading(false);
     }
   };
 
@@ -197,7 +198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
   const handleFillDemoCredentials = () => {
     setLoginEmail('admin@taximooo.nl');
-    setLoginPassword('admin');
+    setLoginPassword('admin123');
   };
 
   // ─── ORDER ACTIONS ──────────────────────────────────────
@@ -371,9 +372,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             <button
               type="submit"
-              className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#001331] via-[#001d4a] to-[#00255c] hover:from-[#000e24] hover:to-[#001d4a] text-white font-extrabold text-sm sm:text-base shadow-lg shadow-[#001331]/25 hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+              disabled={isAdminLoading}
+              className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#001331] via-[#001d4a] to-[#00255c] hover:from-[#000e24] hover:to-[#001d4a] text-white font-extrabold text-sm sm:text-base shadow-lg shadow-[#001331]/25 hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-60"
             >
-              <span>Inloggen op dashboard</span>
+              <span>{isAdminLoading ? 'Verifiëren via database...' : 'Inloggen op dashboard'}</span>
               <ArrowRight className="w-4 h-4 text-[#FFB800]" />
             </button>
           </form>
@@ -385,7 +387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
               onClick={handleFillDemoCredentials}
               className="inline-flex items-center gap-1.5 text-xs text-[#00255c] hover:text-[#FFB800] font-bold transition cursor-pointer"
             >
-              <span>Gebruik demo-inloggegevens (admin / admin)</span>
+              <span>Gebruik database-inloggegevens (admin@taximooo.nl)</span>
             </button>
           </div>
         </div>

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   X, User, Mail, Lock, Phone, ArrowRight, Shield, CreditCard, Star,
   Car, Wallet, Clock, CheckCircle2, Share2, LogOut, Eye, EyeOff,
-  AlertCircle, Check, ChevronRight, UserPlus, LogIn,
+  AlertCircle, Check, ChevronRight, UserPlus, LogIn, LayoutDashboard
 } from 'lucide-react';
+import { supabaseDataService } from '../services/supabaseDataService';
 
 // ─── Brand tokens (Main website palette) ──────────────────
 const NAVY   = '#001331';
@@ -81,7 +82,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
     setSuccessMessage('');
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!loginEmail.trim() || !loginPassword.trim()) {
@@ -89,25 +90,23 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const newUser = {
-        name: loginEmail.split('@')[0].replace('.', ' '),
-        email: loginEmail,
-        phone: '',
-        isLoggedIn: true,
-        balance: 0,
-        ridesCount: 0,
-        rating: 5.0,
-      };
-      setUser(newUser);
-      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
+    try {
+      const loggedUser = await supabaseDataService.loginClient(loginEmail, loginPassword);
+      setUser(loggedUser);
+      localStorage.setItem('taximooo_user', JSON.stringify(loggedUser));
       setSuccessMessage('Succesvol ingelogd!');
-      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 700);
-    }, 600);
+      setTimeout(() => {
+        onClose();
+        onLoginSuccess?.();
+      }, 700);
+    } catch (err: any) {
+      setError(err.message || 'Inloggen mislukt. Controleer je gegevens.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!regName.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword.trim()) {
@@ -127,22 +126,25 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const newUser = {
-        name: regName.trim(),
-        email: regEmail.trim(),
-        phone: regPhone.trim(),
-        isLoggedIn: true,
-        balance: 0,
-        ridesCount: 0,
-        rating: 5.0,
-      };
+    try {
+      const newUser = await supabaseDataService.registerClient(
+        regName,
+        regEmail,
+        regPhone,
+        regPassword
+      );
       setUser(newUser);
       localStorage.setItem('taximooo_user', JSON.stringify(newUser));
       setSuccessMessage('Account succesvol aangemaakt! Welkom bij Taxi mooo.');
-      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 900);
-    }, 800);
+      setTimeout(() => {
+        onClose();
+        onLoginSuccess?.();
+      }, 900);
+    } catch (err: any) {
+      setError(err.message || 'Registratie mislukt. Probeer het opnieuw.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -168,6 +170,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
 
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem('taximooo_user');
     setAuthMode('login');
     setSuccessMessage('');
   };
@@ -278,6 +281,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                 ].map(({ icon, title, sub }) => (
                   <div
                     key={title}
+                    onClick={() => {
+                      onClose();
+                      window.location.hash = '#dashboard';
+                      onLoginSuccess?.();
+                    }}
                     className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-[#FFB800]/50 hover:shadow-md flex items-center justify-between transition cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
@@ -296,6 +304,23 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                   </div>
                 ))}
               </div>
+
+              {/* Full Dashboard Link */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  window.location.hash = '#dashboard';
+                  onLoginSuccess?.();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-white border border-[#00255c]/20 hover:border-[#00255c] text-[#001331] font-bold text-xs flex items-center justify-between shadow-sm transition hover:shadow cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <LayoutDashboard className="w-4 h-4 text-[#00255c]" />
+                  <span>Open Volledig Klantendashboard</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#FFB800]" />
+              </button>
 
               {/* Referral banner */}
               <div
