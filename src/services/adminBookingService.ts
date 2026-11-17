@@ -85,6 +85,15 @@ const DEFAULT_SETTINGS: PricingSettings = {
 const ORDERS_KEY    = 'taximooo_admin_orders_v2';
 const SETTINGS_KEY  = 'taximooo_admin_settings_v1';
 
+// Cleanup any old legacy mock keys from localStorage
+try {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('taximooo_admin_orders_v1');
+    localStorage.removeItem('taximooo_admin_drivers_v1');
+    localStorage.removeItem('taximooo_admin_inquiries_v1');
+  }
+} catch {}
+
 // ─── SERVICE IMPLEMENTATION ───────────────────────────────────────
 export const adminBookingService = {
 
@@ -112,6 +121,7 @@ export const adminBookingService = {
     // Sync to Supabase in background (primary persistence)
     if (supabaseDataService.isLive()) {
       supabaseDataService.createOrder({
+        orderNumber: order.id,
         customerName: order.customerName,
         customerEmail: order.customerEmail,
         customerPhone: order.customerPhone,
@@ -134,7 +144,13 @@ export const adminBookingService = {
         totalFare: order.totalFare,
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
-      }).catch((err) => console.error('Supabase createOrder error:', err));
+      })
+        .then((res) => {
+          console.log('✅ Order successfully saved to Supabase:', res);
+        })
+        .catch((err) => {
+          console.error('❌ Supabase createOrder error:', err);
+        });
     }
 
     return order;

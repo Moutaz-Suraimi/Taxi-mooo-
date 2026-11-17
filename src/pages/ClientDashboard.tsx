@@ -445,9 +445,9 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading 
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Car className="w-5 h-5" />,    value: user.ridesCount,            label: 'Mijn ritten',   iconBg: '#EBF2FC', iconColor: NAVY2,     valColor: NAVY },
-          { icon: <Star className="w-5 h-5" />,   value: user.rating,                label: 'Beoordeling',   iconBg: '#FFF8E7', iconColor: '#E6A500', valColor: NAVY },
-          { icon: <Wallet className="w-5 h-5" />, value: `€ ${user.balance.toFixed(2)}`, label: 'Saldo tegoed', iconBg: '#ECFDF5', iconColor: '#16A34A', valColor: '#16A34A' },
+          { icon: <Car className="w-5 h-5" />,    value: recentRides.length,         label: 'Mijn ritten',   iconBg: '#EBF2FC', iconColor: NAVY2,     valColor: NAVY },
+          { icon: <Star className="w-5 h-5" />,   value: recentRides.length > 0 ? '5.0 ★' : '–', label: 'Beoordeling', iconBg: '#FFF8E7', iconColor: '#E6A500', valColor: NAVY },
+          { icon: <Wallet className="w-5 h-5" />, value: `€ ${(user.balance || 0).toFixed(2)}`, label: 'Saldo tegoed', iconBg: '#ECFDF5', iconColor: '#16A34A', valColor: '#16A34A' },
         ].map(({ icon, value, label, iconBg, iconColor, valColor }) => (
           <div
             key={label}

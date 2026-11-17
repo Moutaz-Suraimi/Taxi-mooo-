@@ -70,12 +70,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   };
 
   // Reload data — Supabase is source of truth
-  const loadData = async () => {
-    // Always start with empty state (no mock data)
-    setOrders([]);
-    setDrivers([]);
-    setSettings(adminBookingService.getSettings());
-    setInquiries([]);
+  const loadData = async (isInitial = false) => {
+    if (isInitial) {
+      setOrders([]);
+      setDrivers([]);
+      setInquiries([]);
+    }
 
     if (supabaseDataService.isLive()) {
       try {
@@ -145,19 +145,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadData();
+      loadData(true);
+
+      // Periodic auto-sync every 8s so new orders appear immediately
+      const pollTimer = setInterval(() => {
+        loadData();
+      }, 8000);
+
+      const handleFocus = () => loadData();
+      window.addEventListener('focus', handleFocus);
 
       // Subscribe to real-time incoming orders from Supabase
+      let unsubscribe = () => {};
       if (supabaseDataService.isLive()) {
-        const unsubscribe = supabaseDataService.subscribeToOrders((newOrderRow) => {
+        unsubscribe = supabaseDataService.subscribeToOrders((newOrderRow) => {
           const mapped = mapSupabaseOrderToBookingOrder(newOrderRow);
           setOrders((prev) => [mapped, ...prev.filter((o) => o.id !== mapped.id)]);
           showToast(`🚨 Nieuwe rit binnengekomen: ${mapped.id} (${mapped.customerName})`);
         });
-        return () => {
-          unsubscribe();
-        };
       }
+
+      return () => {
+        clearInterval(pollTimer);
+        window.removeEventListener('focus', handleFocus);
+        unsubscribe();
+      };
     }
   }, [isAuthenticated]);
 
@@ -530,7 +542,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
                 <div className="flex items-center gap-2.5">
                   <button
-                    onClick={loadData}
+                    onClick={() => loadData()}
                     className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-xs font-bold text-gray-700 shadow-sm transition cursor-pointer"
                     title="Vernieuwen"
                   >
@@ -806,20 +818,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                   <h4 className="font-extrabold text-[#001331] text-base">Top Bestemmingen</h4>
                   <div className="space-y-3">
-                    {[
-                      { route: 'Amsterdam ⟶ Schiphol Airport', share: '42%', count: '28 ritten' },
-                      { route: 'Haarlem ⟶ Schiphol Airport', share: '24%', count: '16 ritten' },
-                      { route: 'Utrecht ⟶ Schiphol Airport', share: '18%', count: '12 ritten' },
-                      { route: 'Amsterdam ⟶ Rotterdam The Hague', share: '16%', count: '9 ritten' },
-                    ].map((r) => (
-                      <div key={r.route} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-xs sm:text-sm">
-                        <span className="font-bold text-gray-900">{r.route}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-500">{r.count}</span>
-                          <span className="font-black text-[#00255c] bg-blue-100 px-2 py-0.5 rounded-full text-xs">{r.share}</span>
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      if (orders.length === 0) {
+                        return (
+                          <div className="p-8 text-center text-xs text-gray-400">
+                            Nog geen ritten geregistreerd om top bestemmingen te berekenen.
+                          </div>
+                        );
+                      }
+                      const counts: Record<string, number> = {};
+                      orders.forEach((o) => {
+                        const key = `${o.pickup} ⟶ ${o.destination}`;
+                        counts[key] = (counts[key] || 0) + 1;
+                      });
+                      return Object.entries(counts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([route, count]) => {
+                          const share = Math.round((count / orders.length) * 100);
+                          return (
+                            <div key={route} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-xs sm:text-sm">
+                              <span className="font-bold text-gray-900 truncate max-w-[260px]">{route}</span>
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span className="text-gray-500">{count} {count === 1 ? 'rit' : 'ritten'}</span>
+                                <span className="font-black text-[#00255c] bg-blue-100 px-2 py-0.5 rounded-full text-xs">{share}%</span>
+                              </div>
+                            </div>
+                          );
+                        });
+                    })()}
                   </div>
                 </div>
 
@@ -862,63 +889,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {drivers.map((drv) => {
-                  const statusColor =
-                    drv.status === 'beschikbaar'
-                      ? 'bg-green-100 text-green-800'
-                      : drv.status === 'bezig'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-gray-100 text-gray-600';
+              {drivers.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 text-center text-gray-400 text-sm border border-slate-200">
+                  Geen geregistreerde chauffeurs in de database.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {drivers.map((drv) => {
+                    const statusColor =
+                      drv.status === 'beschikbaar'
+                        ? 'bg-green-100 text-green-800'
+                        : drv.status === 'bezig'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-gray-100 text-gray-600';
 
-                  return (
-                    <div key={drv.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-xl bg-[#001331] text-[#FFB800] flex items-center justify-center font-black text-sm">
-                            {drv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    return (
+                      <div key={drv.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-[#001331] text-[#FFB800] flex items-center justify-center font-black text-sm">
+                              {drv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </div>
+                            <div>
+                              <h4 className="font-black text-sm text-[#001331]">{drv.name}</h4>
+                              <span className="text-[11px] text-gray-500">{drv.phone}</span>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-black text-sm text-[#001331]">{drv.name}</h4>
-                            <span className="text-[11px] text-gray-500">{drv.phone}</span>
-                          </div>
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColor}`}>
-                          {drv.status.toUpperCase()}
-                        </span>
-                      </div>
-
-                      <div className="p-3 bg-gray-50 rounded-xl space-y-1.5 text-xs text-gray-600">
-                        <div className="flex justify-between">
-                          <span>Voertuig:</span>
-                          <span className="font-bold text-gray-900">{drv.vehicle}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Kenteken:</span>
-                          <span className="font-mono font-bold text-gray-900 bg-white px-1.5 py-0.5 rounded border border-gray-200">
-                            {drv.plate}
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColor}`}>
+                            {drv.status.toUpperCase()}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Beoordeling:</span>
-                          <span className="font-bold text-amber-600">★ {drv.rating}</span>
-                        </div>
-                      </div>
 
-                      {/* Direct WhatsApp Call Chauffeur */}
-                      <a
-                        href={`https://wa.me/${drv.phone.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-2 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 font-bold text-xs flex items-center justify-center gap-2 transition"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Chat via WhatsApp</span>
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
+                        <div className="p-3 bg-gray-50 rounded-xl space-y-1.5 text-xs text-gray-600">
+                          <div className="flex justify-between">
+                            <span>Voertuig:</span>
+                            <span className="font-bold text-gray-900">{drv.vehicle}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Kenteken:</span>
+                            <span className="font-mono font-bold text-gray-900 bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                              {drv.plate}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Beoordeling:</span>
+                            <span className="font-bold text-amber-600">★ {drv.rating}</span>
+                          </div>
+                        </div>
+
+                        {/* Direct WhatsApp Call Chauffeur */}
+                        <a
+                          href={`https://wa.me/${drv.phone.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-2 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-700 font-bold text-xs flex items-center justify-center gap-2 transition"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Chat via WhatsApp</span>
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1036,8 +1069,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
-                {inquiries.map((inq) => (
-                  <div key={inq.id} className="p-5 hover:bg-gray-50 transition space-y-2">
+                {inquiries.length === 0 ? (
+                  <div className="py-14 text-center text-gray-400 text-sm">
+                    Geen berichten of vragen ontvangen.
+                  </div>
+                ) : (
+                  inquiries.map((inq) => (
+                    <div key={inq.id} className="p-5 hover:bg-gray-50 transition space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="font-black text-sm text-[#001331]">{inq.name}</span>
@@ -1073,7 +1111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                       </a>
                     </div>
                   </div>
-                ))}
+                ))) }
               </div>
             </div>
           )}

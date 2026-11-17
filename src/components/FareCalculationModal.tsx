@@ -77,9 +77,30 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
   bookingData,
 }) => {
   const [selectedVehicle, setSelectedVehicle] = useState<'klein' | 'groot'>('klein');
-  const [customerName, setCustomerName] = useState('Moutaz Wael');
-  const [customerPhone, setCustomerPhone] = useState('+31 6 1234 5678');
-  const [customerEmail, setCustomerEmail] = useState('moutaz@example.com');
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      const u = localStorage.getItem('taximooo_user');
+      return u ? JSON.parse(u).name || '' : '';
+    } catch {
+      return '';
+    }
+  });
+  const [customerPhone, setCustomerPhone] = useState(() => {
+    try {
+      const u = localStorage.getItem('taximooo_user');
+      return u ? JSON.parse(u).phone || '' : '';
+    } catch {
+      return '';
+    }
+  });
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    try {
+      const u = localStorage.getItem('taximooo_user');
+      return u ? JSON.parse(u).email || '' : '';
+    } catch {
+      return '';
+    }
+  });
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'ideal' | 'pin' | 'creditcard'>('cash');
   const [isBooked, setIsBooked] = useState(false);
   const [bookingRefId, setBookingRefId] = useState('');
@@ -126,7 +147,7 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
         ? new Date().toISOString().split('T')[0]
         : bookingData.pickupDateType === 'morgen'
         ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
-        : bookingData.customDate;
+        : bookingData.customDate || new Date().toISOString().split('T')[0];
 
     adminBookingService.saveOrder({
       id: generatedId,
@@ -138,18 +159,18 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
       estimatedKm,
       estimatedDurationMins: estimatedMins,
       pickupDate: formattedPickupDate,
-      pickupTime: bookingData.pickupTime,
-      isReturnTrip: bookingData.isReturnTrip,
-      returnDate: bookingData.returnDate,
-      returnTime: bookingData.returnTime,
+      pickupTime: bookingData.pickupTime || '12:00',
+      isReturnTrip: Boolean(bookingData.isReturnTrip),
+      returnDate: bookingData.isReturnTrip ? bookingData.returnDate : undefined,
+      returnTime: bookingData.isReturnTrip ? bookingData.returnTime : undefined,
       vehicleType: selectedVehicle,
       passengers: bookingData.passengers,
-      hasLuggage: bookingData.hasLuggage,
+      hasLuggage: Boolean(bookingData.hasLuggage),
       kmRate: currentRate,
       totalFare: currentPrice,
-      customerName,
-      customerPhone,
-      customerEmail,
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim(),
+      customerEmail: customerEmail.trim(),
       paymentMethod,
       paymentStatus: paymentMethod === 'ideal' ? 'betaald' : 'bij_chauffeur',
     });
@@ -411,6 +432,7 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                       <input
                         type="text"
                         required
+                        placeholder="Bijv. Jan de Vries"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="w-full bg-transparent text-sm focus:outline-none"
@@ -427,6 +449,7 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                       <input
                         type="tel"
                         required
+                        placeholder="Bijv. +31 6 12345678"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         className="w-full bg-transparent text-sm focus:outline-none"
@@ -444,6 +467,7 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                     <input
                       type="email"
                       required
+                      placeholder="Bijv. jan@voorbeeld.nl"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       className="w-full bg-transparent text-sm focus:outline-none"

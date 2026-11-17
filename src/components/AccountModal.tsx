@@ -94,11 +94,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
       const newUser = {
         name: loginEmail.split('@')[0].replace('.', ' '),
         email: loginEmail,
-        phone: '+31 6 41212427',
+        phone: '',
         isLoggedIn: true,
-        balance: 45.2,
-        ridesCount: 12,
-        rating: 4.8,
+        balance: 0,
+        ridesCount: 0,
+        rating: 5.0,
       };
       setUser(newUser);
       localStorage.setItem('taximooo_user', JSON.stringify(newUser));
@@ -134,7 +134,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
         email: regEmail.trim(),
         phone: regPhone.trim(),
         isLoggedIn: true,
-        balance: 10.0,
+        balance: 0,
         ridesCount: 0,
         rating: 5.0,
       };
@@ -151,13 +151,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
     setTimeout(() => {
       setIsLoading(false);
       const newUser = {
-        name: 'Moutaz Wael',
-        email: 'moutaz.wael@gmail.com',
-        phone: '+31 6 41212427',
+        name: 'Klant',
+        email: 'klant@taximooo.nl',
+        phone: '',
         isLoggedIn: true,
-        balance: 45.2,
-        ridesCount: 12,
-        rating: 4.9,
+        balance: 0,
+        ridesCount: 0,
+        rating: 5.0,
       };
       setUser(newUser);
       localStorage.setItem('taximooo_user', JSON.stringify(newUser));

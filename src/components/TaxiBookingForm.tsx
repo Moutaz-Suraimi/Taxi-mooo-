@@ -50,8 +50,8 @@ interface TaxiBookingFormProps {
 }
 
 export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFare }) => {
-  const [pickup, setPickup] = useState('Amsterdam Centraal Station');
-  const [destination, setDestination] = useState('Schiphol Airport (AMS)');
+  const [pickup, setPickup] = useState('');
+  const [destination, setDestination] = useState('');
   const [stops, setStops] = useState<string[]>([]);
   const [vehicleType, setVehicleType] = useState<'klein' | 'groot'>('klein');
   const [hasLuggage, setHasLuggage] = useState(true);

@@ -3,6 +3,7 @@ import type { Database, OrderStatus, DriverStatus, PaymentMethod, PaymentStatus,
 import type { BookingOrder } from './adminBookingService';
 
 export interface CreateBookingPayload {
+  orderNumber?: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -76,7 +77,9 @@ export const supabaseDataService = {
     if (!isSupabaseConfigured) return null;
 
     const orderId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `TXM-${Date.now()}`;
-    const orderNumber = `TXM-${Date.now().toString().slice(-6)}`;
+    const orderNumber = payload.orderNumber || `TXM-${Date.now().toString().slice(-6)}`;
+
+    const sanitize = (val?: string | null) => (val && typeof val === 'string' && val.trim() ? val.trim() : null);
 
     const { error } = await supabase
       .from('booking_orders')
@@ -87,20 +90,20 @@ export const supabaseDataService = {
         customer_name: payload.customerName,
         customer_email: payload.customerEmail,
         customer_phone: payload.customerPhone,
-        customer_notes: payload.customerNotes || null,
+        customer_notes: sanitize(payload.customerNotes),
         pickup_address: payload.pickupAddress,
         destination_address: payload.destinationAddress,
         estimated_km: payload.estimatedKm,
         estimated_duration_mins: payload.estimatedDurationMins || null,
         pickup_date: payload.pickupDate,
         pickup_time: payload.pickupTime,
-        is_return_trip: payload.isReturnTrip || false,
-        return_date: payload.returnDate || null,
-        return_time: payload.returnTime || null,
-        flight_number: payload.flightNumber || null,
+        is_return_trip: Boolean(payload.isReturnTrip),
+        return_date: payload.isReturnTrip ? sanitize(payload.returnDate) : null,
+        return_time: payload.isReturnTrip ? sanitize(payload.returnTime) : null,
+        flight_number: sanitize(payload.flightNumber),
         vehicle_type: payload.vehicleType,
         passengers: payload.passengers,
-        has_luggage: payload.hasLuggage,
+        has_luggage: Boolean(payload.hasLuggage),
         km_rate: payload.kmRate,
         total_fare: payload.totalFare,
         payment_method: payload.paymentMethod,
@@ -115,12 +118,14 @@ export const supabaseDataService = {
 
     // Insert intermediate stops if any
     if (payload.stops && payload.stops.length > 0) {
-      const stopsData = payload.stops.map((stop, index) => ({
+      const stopsData = payload.stops.filter((s) => s && s.trim()).map((stop, index) => ({
         order_id: orderId,
         stop_order: index + 1,
-        address: stop,
+        address: stop.trim(),
       }));
-      await supabase.from('order_stops').insert(stopsData);
+      if (stopsData.length > 0) {
+        await supabase.from('order_stops').insert(stopsData);
+      }
     }
 
     return { id: orderId, order_number: orderNumber };
