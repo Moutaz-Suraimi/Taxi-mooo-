@@ -1,0 +1,286 @@
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import type { Database, OrderStatus, DriverStatus, PaymentMethod, PaymentStatus, VehicleType } from '../types/database.types';
+
+export interface CreateBookingPayload {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerNotes?: string;
+  pickupAddress: string;
+  destinationAddress: string;
+  stops?: string[];
+  estimatedKm: number;
+  estimatedDurationMins?: number;
+  pickupDate: string;
+  pickupTime: string;
+  isReturnTrip?: boolean;
+  returnDate?: string;
+  returnTime?: string;
+  flightNumber?: string;
+  vehicleType: VehicleType;
+  passengers: number;
+  hasLuggage: boolean;
+  kmRate: number;
+  totalFare: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  customerId?: string;
+}
+
+export const supabaseDataService = {
+  // Check if live Supabase backend is active
+  isLive: () => isSupabaseConfigured,
+
+  // ── 1. BOOKINGS ───────────────────────────────────────────────────
+  async createOrder(payload: CreateBookingPayload) {
+    if (!isSupabaseConfigured) return null;
+
+    const orderId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `TXM-${Date.now()}`;
+    const orderNumber = `TXM-${Date.now().toString().slice(-6)}`;
+
+    const { error } = await supabase
+      .from('booking_orders')
+      .insert({
+        id: orderId,
+        order_number: orderNumber,
+        customer_id: payload.customerId || null,
+        customer_name: payload.customerName,
+        customer_email: payload.customerEmail,
+        customer_phone: payload.customerPhone,
+        customer_notes: payload.customerNotes || null,
+        pickup_address: payload.pickupAddress,
+        destination_address: payload.destinationAddress,
+        estimated_km: payload.estimatedKm,
+        estimated_duration_mins: payload.estimatedDurationMins || null,
+        pickup_date: payload.pickupDate,
+        pickup_time: payload.pickupTime,
+        is_return_trip: payload.isReturnTrip || false,
+        return_date: payload.returnDate || null,
+        return_time: payload.returnTime || null,
+        flight_number: payload.flightNumber || null,
+        vehicle_type: payload.vehicleType,
+        passengers: payload.passengers,
+        has_luggage: payload.hasLuggage,
+        km_rate: payload.kmRate,
+        total_fare: payload.totalFare,
+        payment_method: payload.paymentMethod,
+        payment_status: payload.paymentStatus || 'openstaand',
+        status: 'nieuw',
+      });
+
+    if (error) {
+      console.error('Error inserting booking order:', error);
+      throw error;
+    }
+
+    // Insert intermediate stops if any
+    if (payload.stops && payload.stops.length > 0) {
+      const stopsData = payload.stops.map((stop, index) => ({
+        order_id: orderId,
+        stop_order: index + 1,
+        address: stop,
+      }));
+      await supabase.from('order_stops').insert(stopsData);
+    }
+
+    return { id: orderId, order_number: orderNumber };
+  },
+
+  async getAllOrders() {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabase
+      .from('booking_orders')
+      .select(`
+        *,
+        assigned_driver:drivers(*),
+        stops:order_stops(*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async getCustomerOrders(customerId: string) {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabase
+      .from('booking_orders')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('pickup_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching customer orders:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('booking_orders')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) console.error('Error updating status:', error);
+  },
+
+  async assignDriver(orderId: string, driverId: string) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('booking_orders')
+      .update({
+        assigned_driver_id: driverId,
+        status: 'toegewezen',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (error) console.error('Error assigning driver:', error);
+  },
+
+  async deleteOrder(orderId: string) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('booking_orders')
+      .delete()
+      .eq('id', orderId);
+
+    if (error) console.error('Error deleting order:', error);
+  },
+
+  // ── 2. DRIVERS ────────────────────────────────────────────────────
+  async getDrivers() {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('*')
+      .order('driver_code', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching drivers:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async updateDriverStatus(driverId: string, status: DriverStatus) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('drivers')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', driverId);
+
+    if (error) console.error('Error updating driver status:', error);
+  },
+
+  // ── 3. PRICING SETTINGS ───────────────────────────────────────────
+  async getPricingSettings() {
+    if (!isSupabaseConfigured) return null;
+
+    const { data, error } = await supabase
+      .from('pricing_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Error fetching pricing settings:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async updatePricingSettings(settings: Partial<Database['public']['Tables']['pricing_settings']['Update']>) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('pricing_settings')
+      .update({ ...settings, updated_at: new Date().toISOString() })
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // updates the row
+
+    if (error) console.error('Error updating pricing:', error);
+  },
+
+  // ── 4. CONTACT INQUIRIES ──────────────────────────────────────────
+  async submitInquiry(payload: { name: string; email: string; phone?: string; subject: string; message: string }) {
+    if (!isSupabaseConfigured) return null;
+
+    const inquiryId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `INQ-${Date.now()}`;
+
+    const { error } = await supabase
+      .from('contact_inquiries')
+      .insert({
+        id: inquiryId,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone || null,
+        subject: payload.subject,
+        message: payload.message,
+      });
+
+    if (error) {
+      console.error('Error submitting inquiry:', error);
+      throw error;
+    }
+    return { id: inquiryId };
+  },
+
+  async getInquiries() {
+    if (!isSupabaseConfigured) return [];
+
+    const { data, error } = await supabase
+      .from('contact_inquiries')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching inquiries:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async markInquiryAsRead(id: string) {
+    if (!isSupabaseConfigured) return;
+
+    const { error } = await supabase
+      .from('contact_inquiries')
+      .update({ is_read: true })
+      .eq('id', id);
+
+    if (error) console.error('Error updating inquiry status:', error);
+  },
+
+  // ── 5. REALTIME SUBSCRIPTION ──────────────────────────────────────
+  subscribeToOrders(onInsert: (order: Database['public']['Tables']['booking_orders']['Row']) => void) {
+    if (!isSupabaseConfigured) return () => {};
+
+    const channel = supabase
+      .channel('public:booking_orders')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'booking_orders' },
+        (payload) => {
+          onInsert(payload.new as Database['public']['Tables']['booking_orders']['Row']);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  },
+};
+

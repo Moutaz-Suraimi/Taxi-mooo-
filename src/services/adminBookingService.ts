@@ -1,4 +1,5 @@
 // ─── TAXI MOOO ADMIN BOOKING & DISPATCH SERVICE ──────────────────
+import { supabaseDataService } from './supabaseDataService';
 
 export type OrderStatus =
   | 'nieuw'        // New incoming booking
@@ -274,6 +275,35 @@ export const adminBookingService = {
     } catch (e) {
       console.error('Failed to save order to localStorage', e);
     }
+
+    // Sync to Supabase in background if configured
+    if (supabaseDataService.isLive()) {
+      supabaseDataService.createOrder({
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        customerPhone: order.customerPhone,
+        customerNotes: order.customerNotes,
+        pickupAddress: order.pickup,
+        destinationAddress: order.destination,
+        stops: order.stops,
+        estimatedKm: order.estimatedKm,
+        estimatedDurationMins: order.estimatedDurationMins,
+        pickupDate: order.pickupDate,
+        pickupTime: order.pickupTime,
+        isReturnTrip: order.isReturnTrip,
+        returnDate: order.returnDate,
+        returnTime: order.returnTime,
+        flightNumber: order.flightNumber,
+        vehicleType: order.vehicleType,
+        passengers: order.passengers,
+        hasLuggage: order.hasLuggage,
+        kmRate: order.kmRate,
+        totalFare: order.totalFare,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+      }).catch((err) => console.error('Supabase createOrder error:', err));
+    }
+
     return order;
   },
 
