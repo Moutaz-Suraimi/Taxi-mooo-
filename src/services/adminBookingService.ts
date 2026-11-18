@@ -69,6 +69,8 @@ export interface ContactInquiry {
   subject: string;
   message: string;
   isRead: boolean;
+  adminReply?: string;
+  repliedAt?: string;
 }
 
 // ─── DEFAULT PRICING (fallback only) ─────────────────────────────

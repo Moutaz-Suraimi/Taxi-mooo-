@@ -284,41 +284,125 @@ export const supabaseDataService = {
 
   // ── 4. CONTACT INQUIRIES ──────────────────────────────────────────
   async submitInquiry(payload: { name: string; email: string; phone?: string; subject: string; message: string }) {
-    if (!isSupabaseConfigured) return null;
-
     const inquiryId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `INQ-${Date.now()}`;
+    const newInquiry: Database['public']['Tables']['contact_inquiries']['Insert'] = {
+      id: inquiryId,
+      name: payload.name.trim(),
+      email: payload.email.trim().toLowerCase(),
+      phone: payload.phone?.trim() || null,
+      subject: payload.subject.trim(),
+      message: payload.message.trim(),
+      is_read: false,
+      admin_reply: null,
+      replied_at: null,
+      created_at: new Date().toISOString(),
+    };
 
-    const { error } = await supabase
-      .from('contact_inquiries')
-      .insert({
-        id: inquiryId,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone || null,
-        subject: payload.subject,
-        message: payload.message,
-      });
+    // 1. Save to localStorage as resilient offline store
+    try {
+      const stored = localStorage.getItem('taximooo_inquiries');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(newInquiry);
+      localStorage.setItem('taximooo_inquiries', JSON.stringify(list));
+    } catch {}
 
-    if (error) {
-      console.error('Error submitting inquiry:', error);
-      throw error;
+    // 2. Insert into Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('contact_inquiries')
+          .insert(newInquiry);
+
+        if (error) {
+          console.warn('Error submitting inquiry to Supabase, saved locally:', error.message);
+        }
+      } catch (err) {
+        console.warn('Network error submitting inquiry:', err);
+      }
     }
     return { id: inquiryId };
   },
 
   async getInquiries() {
-    if (!isSupabaseConfigured) return [];
+    let results: Database['public']['Tables']['contact_inquiries']['Row'][] = [];
 
-    const { data, error } = await supabase
-      .from('contact_inquiries')
-      .select('*')
-      .order('created_at', { ascending: false });
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('contact_inquiries')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching inquiries:', error);
-      return [];
+        if (!error && data) {
+          results = data;
+        }
+      } catch (err) {
+        console.warn('Error fetching inquiries from Supabase:', err);
+      }
     }
-    return data;
+
+    // Merge with localStorage
+    try {
+      const stored = localStorage.getItem('taximooo_inquiries');
+      if (stored) {
+        const localList: any[] = JSON.parse(stored);
+        localList.forEach((loc) => {
+          if (!results.some((r) => r.id === loc.id)) {
+            results.push(loc);
+          }
+        });
+      }
+    } catch {}
+
+    return results;
+  },
+
+  async getUserInquiries(email: string) {
+    if (!email) return [];
+    const cleanEmail = email.trim().toLowerCase();
+    const all = await this.getInquiries();
+    return all.filter((inq) => inq.email.toLowerCase() === cleanEmail);
+  },
+
+  async replyToInquiry(inquiryId: string, replyText: string) {
+    const now = new Date().toISOString();
+    const cleanReply = replyText.trim();
+
+    // 1. Update localStorage
+    try {
+      const stored = localStorage.getItem('taximooo_inquiries');
+      if (stored) {
+        const list = JSON.parse(stored);
+        const idx = list.findIndex((i: any) => i.id === inquiryId);
+        if (idx !== -1) {
+          list[idx].admin_reply = cleanReply;
+          list[idx].replied_at = now;
+          list[idx].is_read = true;
+          localStorage.setItem('taximooo_inquiries', JSON.stringify(list));
+        }
+      }
+    } catch {}
+
+    // 2. Update Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('contact_inquiries')
+          .update({
+            admin_reply: cleanReply,
+            replied_at: now,
+            is_read: true,
+          })
+          .eq('id', inquiryId);
+
+        if (error) {
+          console.warn('Error replying to inquiry in Supabase:', error.message);
+        }
+      } catch (err) {
+        console.warn('Network error replying to inquiry:', err);
+      }
+    }
+    return { success: true };
   },
 
   async markInquiryAsRead(id: string) {

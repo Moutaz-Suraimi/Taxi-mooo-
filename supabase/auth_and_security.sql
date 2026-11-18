@@ -93,3 +93,7 @@ DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.client_accounts;
 EXCEPTION WHEN others THEN NULL; END $$;
 
+-- ── 6. CONTACT INQUIRIES ADMIN REPLY COLUMNS ─────────────────────
+ALTER TABLE public.contact_inquiries ADD COLUMN IF NOT EXISTS admin_reply TEXT;
+ALTER TABLE public.contact_inquiries ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
+

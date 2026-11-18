@@ -282,6 +282,8 @@ export interface Database {
           subject: string;
           message: string;
           is_read: boolean;
+          admin_reply: string | null;
+          replied_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -292,6 +294,8 @@ export interface Database {
           subject: string;
           message: string;
           is_read?: boolean;
+          admin_reply?: string | null;
+          replied_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -302,6 +306,8 @@ export interface Database {
           subject?: string;
           message?: string;
           is_read?: boolean;
+          admin_reply?: string | null;
+          replied_at?: string | null;
           created_at?: string;
         };
         Relationships: [];

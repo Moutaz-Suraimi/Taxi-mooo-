@@ -4,7 +4,7 @@ import {
   CheckCircle2, LogOut, ChevronRight, MapPin,
   Headphones, Bell, ChevronDown, ArrowRight,
   Home, Menu, X, Phone, Lock, Key, Smartphone, Laptop,
-  Eye, EyeOff, AlertTriangle,
+  Eye, EyeOff, AlertTriangle, MessageSquare, Send,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabaseDataService, mapSupabaseOrderToBookingOrder } from '../services/supabaseDataService';
@@ -22,6 +22,17 @@ interface AuthUser {
   balance: number;
   ridesCount: number;
   rating: number;
+}
+
+export interface ClientNotification {
+  id: string;
+  type: 'inquiry_reply' | 'pricing_update' | 'order_update' | 'system';
+  title: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+  linkSection?: DashSection;
+  badge?: string;
 }
 
 type DashSection =
@@ -637,7 +648,77 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
 }
 
 // ─── KLANTENSERVICE SECTION ─────────────────────────────
-function KlantenserviceSection({ onContact }: { onContact?: () => void }) {
+function KlantenserviceSection({
+  user,
+}: {
+  onContact?: () => void;
+  user: AuthUser;
+}) {
+  const [subject, setSubject] = useState('Algemene vraag');
+  const [customSubject, setCustomSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [loadingInquiries, setLoadingInquiries] = useState(false);
+
+  const quickSubjects = [
+    'Algemene vraag',
+    'Ritwijziging',
+    'Prijsopgave / Offerte',
+    'Betaling & Factuur',
+    'Overig',
+  ];
+
+  const loadUserInquiries = useCallback(async () => {
+    if (!user?.email) return;
+    setLoadingInquiries(true);
+    try {
+      const data = await supabaseDataService.getUserInquiries(user.email);
+      setInquiries(data);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingInquiries(false);
+    }
+  }, [user?.email]);
+
+  useEffect(() => {
+    loadUserInquiries();
+  }, [loadUserInquiries]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) {
+      setSubmitError('Vul a.u.b. een bericht in.');
+      return;
+    }
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    const finalSubject = subject === 'Overig' && customSubject.trim() ? customSubject.trim() : subject;
+
+    try {
+      await supabaseDataService.submitInquiry({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        subject: finalSubject,
+        message: message.trim(),
+      });
+      setSubmitSuccess(true);
+      setMessage('');
+      setCustomSubject('');
+      await loadUserInquiries();
+      setTimeout(() => setSubmitSuccess(false), 5000);
+    } catch (err: any) {
+      setSubmitError(err.message || 'Er is een fout opgetreden bij het verzenden.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -645,6 +726,7 @@ function KlantenserviceSection({ onContact }: { onContact?: () => void }) {
         <p className="text-sm text-gray-500">24/7 bereikbaar voor ondersteuning, ritwijzigingen en vragen.</p>
       </div>
 
+      {/* Direct Contact Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Phone */}
         <a
@@ -691,20 +773,211 @@ function KlantenserviceSection({ onContact }: { onContact?: () => void }) {
         </a>
       </div>
 
-      <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h4 className="font-extrabold text-[#001331] text-base">Direct een bericht of offerte sturen?</h4>
-          <p className="text-xs text-gray-500 mt-0.5">Ga direct naar de officiële contact- en centrale-pagina van Taxi mooo.</p>
+      {/* ── Direct Message to Central dispatch form ── */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#00255c]" />
+              <h3 className="font-extrabold text-[#001331] text-base sm:text-lg">
+                Stuur direct een bericht naar de centrale
+              </h3>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Je bericht komt direct binnen op het beheersysteem van de centrale met jouw accountgegevens.
+            </p>
+          </div>
         </div>
-        {onContact && (
+
+        {/* User identification chip */}
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-gray-700">
+            <span className="font-bold text-[#001331]">Verzonden als:</span>
+            <span className="font-extrabold text-[#00255c]">{user.name}</span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-600">{user.email}</span>
+            {user.phone && (
+              <>
+                <span className="text-gray-400">•</span>
+                <span className="text-gray-600">{user.phone}</span>
+              </>
+            )}
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 font-bold text-[10px]">
+            ✓ Geverifieerd account
+          </span>
+        </div>
+
+        {submitSuccess && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-sm text-green-800 font-semibold animate-in fade-in">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-bold">Bericht succesvol verzonden naar de centrale!</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                De centrale heeft je bericht ontvangen. Zodra er wordt gereageerd, ontvang je direct een melding in je dashboard.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {submitError && (
+          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-700 font-semibold">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{submitError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Quick Subject selection */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-2">
+              Kies een onderwerp
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {quickSubjects.map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setSubject(sub)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    subject === sub
+                      ? 'bg-[#001331] text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {subject === 'Overig' && (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Specifiek onderwerp
+              </label>
+              <input
+                type="text"
+                required
+                value={customSubject}
+                onChange={(e) => setCustomSubject(e.target.value)}
+                placeholder="Bijv. Vraag over verloren voorwerp..."
+                className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10"
+              />
+            </div>
+          )}
+
+          {/* Message area */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              Jouw bericht of vraag
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Schrijf hier je vraag, ritwijziging of opmerking voor de centrale..."
+              className="w-full p-4 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 resize-none"
+            />
+          </div>
+
+          {/* Submit button */}
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <span className="text-[11px] text-gray-400">
+              Antwoord verschijnt direct hieronder en bij je meldingen.
+            </span>
+            <button
+              type="submit"
+              disabled={isSubmitting || !message.trim()}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-[#001331] shadow hover:shadow-md transition cursor-pointer shrink-0 disabled:opacity-50"
+              style={{ background: YELLOW }}
+            >
+              <Send className="w-4 h-4" />
+              <span>{isSubmitting ? 'Verzenden...' : 'Verstuur bericht naar centrale'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ── My Sent Messages & Replies List ── */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <MessageSquare className="w-5 h-5 text-[#00255c]" />
+            <h4 className="font-extrabold text-[#001331] text-base">
+              Mijn berichten & antwoorden van de centrale
+            </h4>
+          </div>
           <button
-            onClick={onContact}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm text-[#001331] shadow hover:shadow-md transition cursor-pointer shrink-0"
-            style={{ background: YELLOW }}
+            type="button"
+            onClick={loadUserInquiries}
+            className="text-xs font-bold text-[#00255c] hover:underline cursor-pointer"
           >
-            <span>Neem contact op</span>
-            <ArrowRight className="w-4 h-4" />
+            Vernieuwen
           </button>
+        </div>
+
+        {loadingInquiries ? (
+          <div className="py-8 text-center text-gray-400 text-sm">
+            <div className="w-5 h-5 border-2 border-[#001331]/20 border-t-[#001331] rounded-full animate-spin mx-auto mb-2" />
+            Berichten laden...
+          </div>
+        ) : inquiries.length === 0 ? (
+          <div className="py-8 text-center text-gray-400 text-sm">
+            Je hebt nog geen berichten naar de centrale gestuurd.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {inquiries.map((inq) => (
+              <div
+                key={inq.id}
+                className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-3"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-[#001331]">{inq.subject}</span>
+                  <div className="flex items-center gap-2">
+                    {inq.admin_reply ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-green-100 text-green-800 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-green-600" /> Beantwoord
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-600" /> In behandeling
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {new Date(inq.created_at).toLocaleDateString('nl-NL')}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-600 bg-white p-3 rounded-lg border border-gray-100">
+                  {inq.message}
+                </p>
+
+                {/* If replied by admin */}
+                {inq.admin_reply && (
+                  <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-green-900">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        Antwoord van Taxi mooo Centrale:
+                      </span>
+                      {inq.replied_at && (
+                        <span className="text-[10px] text-green-700 font-normal">
+                          {new Date(inq.replied_at).toLocaleString('nl-NL')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-green-950 font-medium leading-relaxed bg-white/70 p-2.5 rounded-lg border border-green-100">
+                      {inq.admin_reply}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -721,15 +994,48 @@ interface RecentRide {
   price: string;
 }
 
-function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading }: {
+function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading, unreadNotifications }: {
   user: AuthUser;
   onNavigate: (s: DashSection) => void;
   onContact?: () => void;
   recentRides: RecentRide[];
   ridesLoading: boolean;
+  unreadNotifications?: ClientNotification[];
 }) {
   return (
     <div className="space-y-6">
+
+      {/* ── Unread Notification Alert Banner ── */}
+      {unreadNotifications && unreadNotifications.length > 0 && (
+        <div
+          onClick={() => {
+            const first = unreadNotifications[0];
+            if (first.linkSection) onNavigate(first.linkSection);
+          }}
+          className="p-4 rounded-2xl bg-[#001331] border border-[#FFB800] shadow-md flex items-center justify-between gap-3 cursor-pointer hover:bg-[#00255c] transition group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FFB800] text-[#001331] flex items-center justify-center font-bold shrink-0">
+              <Bell className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-[#FFB800] text-[#001331]">
+                  Nieuwe melding ({unreadNotifications.length})
+                </span>
+                <span className="text-[11px] text-white/60">Klik om direct te bekijken</span>
+              </div>
+              <p className="text-sm font-bold text-white mt-1">
+                {unreadNotifications[0].title}
+              </p>
+              <p className="text-xs text-white/80 line-clamp-1">
+                {unreadNotifications[0].message}
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#FFB800] group-hover:translate-x-1 transition-transform shrink-0" />
+        </div>
+      )}
 
       {/* ── Profile Hero Banner ── */}
       <div
@@ -1006,6 +1312,104 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
   const [recentRides, setRecentRides] = useState<{ from: string; to: string; date: string; time: string; status: string; price: string }[]>([]);
   const [ridesLoading, setRidesLoading] = useState(false);
 
+  // ─── NOTIFICATIONS STATE ──────────────────────────────────
+  const [notifications, setNotifications] = useState<ClientNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    try {
+      const s = localStorage.getItem('taximooo_read_notifications');
+      return s ? JSON.parse(s) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const loadNotifications = useCallback(async (userEmail: string) => {
+    const list: ClientNotification[] = [];
+
+    // 1. Inquiries replies for this user
+    try {
+      const userInquiries = await supabaseDataService.getUserInquiries(userEmail);
+      userInquiries.forEach((inq) => {
+        if (inq.admin_reply) {
+          list.push({
+            id: `reply-${inq.id}`,
+            type: 'inquiry_reply',
+            title: `Antwoord op: ${inq.subject}`,
+            message: `De centrale heeft gereageerd: "${inq.admin_reply}"`,
+            time: inq.replied_at || inq.created_at,
+            isRead: readNotificationIds.includes(`reply-${inq.id}`),
+            linkSection: 'klantenservice',
+            badge: 'Centrale',
+          });
+        }
+      });
+    } catch (err) {
+      console.warn('Could not load user inquiries for notifications:', err);
+    }
+
+    // 2. Pricing updates (kilometer rates)
+    try {
+      const pricing = await supabaseDataService.getPricingSettings();
+      if (pricing) {
+        const klein = Number(pricing.klein_km_rate) || 2.39;
+        const groot = Number(pricing.groot_km_rate) || 3.04;
+        const pricingId = `pricing-${pricing.updated_at || 'current'}-${klein}-${groot}`;
+        list.push({
+          id: pricingId,
+          type: 'pricing_update',
+          title: 'Kilometertarieven bijgewerkt 🚕',
+          message: `Nieuwe kilometertarieven actief: Sedan €${klein.toFixed(2)}/km | Busje €${groot.toFixed(2)}/km.`,
+          time: pricing.updated_at || new Date().toISOString(),
+          isRead: readNotificationIds.includes(pricingId),
+          linkSection: 'dashboard',
+          badge: 'Tarieven',
+        });
+      }
+    } catch (err) {
+      console.warn('Could not load pricing settings for notifications:', err);
+    }
+
+    list.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    setNotifications(list);
+  }, [readNotificationIds]);
+
+  useEffect(() => {
+    if (user?.email) {
+      loadNotifications(user.email);
+      const timer = setInterval(() => {
+        loadNotifications(user.email);
+      }, 10000);
+      return () => clearInterval(timer);
+    }
+  }, [user?.email, loadNotifications]);
+
+  const markAllNotificationsAsRead = () => {
+    const allIds = notifications.map((n) => n.id);
+    const updated = Array.from(new Set([...readNotificationIds, ...allIds]));
+    setReadNotificationIds(updated);
+    localStorage.setItem('taximooo_read_notifications', JSON.stringify(updated));
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const handleNotificationClick = (notif: ClientNotification) => {
+    if (!readNotificationIds.includes(notif.id)) {
+      const updated = [...readNotificationIds, notif.id];
+      setReadNotificationIds(updated);
+      localStorage.setItem('taximooo_read_notifications', JSON.stringify(updated));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+      );
+    }
+    setShowNotifications(false);
+    if (notif.linkSection) {
+      handleNavClick(notif.linkSection);
+    }
+  };
+
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
+  const unreadCount = unreadNotifications.length;
+
   // Load rides from Supabase based on customer email
   const loadRides = useCallback(async (email: string) => {
     if (!supabaseDataService.isLive()) return;
@@ -1077,7 +1481,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
   const renderSection = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} recentRides={recentRides} ridesLoading={ridesLoading} />;
+        return (
+          <MainDashboard
+            user={user}
+            onNavigate={handleNavClick}
+            onContact={onNavigateToContact}
+            recentRides={recentRides}
+            ridesLoading={ridesLoading}
+            unreadNotifications={unreadNotifications}
+          />
+        );
       case 'accountgegevens':
         return <AccountGegevensSection user={user} onSave={handleUpdateUser} />;
       case 'beveiliging':
@@ -1085,9 +1498,18 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
       case 'betaalmethoden':
         return <SectionPlaceholder title="Betaalmethoden" description="Voeg iDEAL, creditcard of andere betaalmethoden toe en beheer ze." icon={<CreditCard />} />;
       case 'klantenservice':
-        return <KlantenserviceSection onContact={onNavigateToContact} />;
+        return <KlantenserviceSection onContact={onNavigateToContact} user={user} />;
       default:
-        return <MainDashboard user={user} onNavigate={handleNavClick} onContact={onNavigateToContact} recentRides={recentRides} ridesLoading={ridesLoading} />;
+        return (
+          <MainDashboard
+            user={user}
+            onNavigate={handleNavClick}
+            onContact={onNavigateToContact}
+            recentRides={recentRides}
+            ridesLoading={ridesLoading}
+            unreadNotifications={unreadNotifications}
+          />
+        );
     }
   };
 
@@ -1130,11 +1552,108 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
 
           {/* Right: Bell + User chip */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Notification bell */}
-            <button className="relative w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/15 cursor-pointer">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-[#001331]" />
-            </button>
+            {/* Notification bell & Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowNotifications((prev) => !prev)}
+                className="relative w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/15 cursor-pointer"
+                title="Meldingen & Berichten"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FFB800] text-[#001331] text-[10px] font-black flex items-center justify-center border-2 border-[#001331] shadow">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Popover Dropdown */}
+              {showNotifications && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotifications(false)}
+                  />
+                  <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-left">
+                    <div className="p-4 bg-[#001331] text-white flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-[#FFB800]" />
+                        <h4 className="font-extrabold text-sm">Meldingen</h4>
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#FFB800] text-[#001331] text-[10px] font-black">
+                            {unreadCount} nieuw
+                          </span>
+                        )}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={markAllNotificationsAsRead}
+                          className="text-xs text-white/70 hover:text-white hover:underline cursor-pointer"
+                        >
+                          Alles gelezen
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-xs">
+                          <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                          Geen nieuwe meldingen beschikbaar.
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-3.5 hover:bg-gray-50 transition cursor-pointer flex gap-3 ${
+                              !notif.isRead ? 'bg-[#FFFDF5]' : ''
+                            }`}
+                          >
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                notif.type === 'inquiry_reply'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}
+                            >
+                              {notif.type === 'inquiry_reply' ? (
+                                <MessageSquare className="w-4 h-4" />
+                              ) : (
+                                <Car className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-xs text-[#07152B] truncate">
+                                  {notif.title}
+                                </span>
+                                {!notif.isRead && (
+                                  <span className="w-2 h-2 rounded-full bg-[#FFB800] shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2 leading-relaxed">
+                                {notif.message}
+                              </p>
+                              <span className="text-[10px] text-gray-400 mt-1 block">
+                                {new Date(notif.time).toLocaleDateString('nl-NL', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* User chip */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 cursor-pointer hover:bg-white/20 transition">
