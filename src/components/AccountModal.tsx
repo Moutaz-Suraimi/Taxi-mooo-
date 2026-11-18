@@ -272,12 +272,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
               </div>
 
               {/* Menu grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { icon: <User className="w-4 h-4" />, title: 'Accountgegevens', sub: 'Bekijk en wijzig je gegevens' },
                   { icon: <Shield className="w-4 h-4" />, title: 'Inloggen & beveiliging', sub: 'Beveilig je account' },
                   { icon: <CreditCard className="w-4 h-4" />, title: 'Betaalmethoden', sub: 'Beheer je iDEAL & kaarten' },
-                  { icon: <Star className="w-4 h-4" />, title: 'Favoriete locaties', sub: 'Thuis, werk & vliegveld' },
                 ].map(({ icon, title, sub }) => (
                   <div
                     key={title}

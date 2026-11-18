@@ -29,7 +29,6 @@ type DashSection =
   | 'accountgegevens'
   | 'beveiliging'
   | 'betaalmethoden'
-  | 'favorieten'
   | 'klantenservice';
 
 interface ClientDashboardProps {
@@ -54,7 +53,6 @@ const NAV_ITEMS: { id: DashSection; label: string; icon: React.ReactNode }[] = [
   { id: 'accountgegevens',label: 'Accountgegevens',    icon: <User className="w-4 h-4" /> },
   { id: 'beveiliging',   label: 'Inloggen & beveiliging', icon: <Shield className="w-4 h-4" /> },
   { id: 'betaalmethoden', label: 'Betaalmethoden',     icon: <CreditCard className="w-4 h-4" /> },
-  { id: 'favorieten',    label: 'Favoriete locaties',  icon: <Star className="w-4 h-4" /> },
   { id: 'klantenservice',label: 'Klantenservice',       icon: <Headphones className="w-4 h-4" /> },
 ];
 
@@ -69,8 +67,7 @@ const MENU_CARDS: {
   { id: 'accountgegevens', icon: <User className="w-5 h-5" />,       title: 'Accountgegevens',        sub: 'Bekijk en wijzig je gegevens' },
   { id: 'beveiliging',     icon: <Shield className="w-5 h-5" />,     title: 'Inloggen & beveiliging', sub: 'Beveilig je account' },
   { id: 'betaalmethoden',  icon: <CreditCard className="w-5 h-5" />, title: 'Betaalmethoden',          sub: 'Beheer je betaalmethoden' },
-  { id: 'favorieten',      icon: <Star className="w-5 h-5" />,       title: 'Favoriete locaties',      sub: 'Sla je favoriete adressen op' },
-  { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: 'Klantenservice',          sub: 'Hulp nodig? Neem contact met ons op', span: true },
+  { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: 'Klantenservice',          sub: 'Hulp nodig? Neem contact met ons op' },
 ];
 
 // ─── Mock recent rides ─── REMOVED (now uses live Supabase data) ───
@@ -1087,8 +1084,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
         return <BeveiligingSection user={user} />;
       case 'betaalmethoden':
         return <SectionPlaceholder title="Betaalmethoden" description="Voeg iDEAL, creditcard of andere betaalmethoden toe en beheer ze." icon={<CreditCard />} />;
-      case 'favorieten':
-        return <SectionPlaceholder title="Favoriete locaties" description="Sla je thuis, werkadres en vliegveld op voor sneller boeken." icon={<Star />} />;
       case 'klantenservice':
         return <KlantenserviceSection onContact={onNavigateToContact} />;
       default:
