@@ -1,11 +1,13 @@
 import React from 'react';
-import { ShieldCheck, Award, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Award, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AboutPreviewSectionProps {
   onNavigateToAbout: () => void;
 }
 
 export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavigateToAbout }) => {
+  const { t } = useLanguage();
   return (
     <section className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 my-14 sm:my-20">
       <div className="bg-gradient-to-br from-[#001331] via-[#001c44] to-[#00275c] rounded-3xl sm:rounded-[32px] p-6 sm:p-10 lg:p-12 text-white shadow-xl relative overflow-hidden">
@@ -18,19 +20,17 @@ export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavi
           <div className="lg:col-span-7 space-y-5">
             <div className="flex items-center gap-2">
               <span className="px-3.5 py-1.5 rounded-full bg-white/10 text-[#FFB800] text-xs font-extrabold uppercase tracking-wider backdrop-blur-sm border border-white/10">
-                Over Taxi mooo
+                {t('about.badge')}
               </span>
               <span className="h-1 w-8 bg-[#FFB800] rounded-full"></span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-              Het premium en betrouwbare taxibedrijf van Nederland
+              {t('about.title')}
             </h2>
 
             <p className="text-sm sm:text-base text-blue-100/90 leading-relaxed">
-              Taxi mooo staat voor stiptheid, persoonlijke service en comfortabel vervoer in een modern
-              Mercedes-Benz wagenpark. Of je nu een vroege vlucht vanaf Schiphol hebt, een zakelijke afspraak
-              of een gezellige avond uit: onze gecertificeerde chauffeurs zorgen voor een zorgeloze rit.
+              {t('about.desc')}
             </p>
 
             {/* Quick check points */}
@@ -44,19 +44,19 @@ export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavi
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 text-[#FFB800] shrink-0" />
                 <span className="text-xs sm:text-sm text-blue-100 font-medium">
-                  Vaste tarieven vooraf gegarandeerd
+                  {t('fare.fixedPriceGuaranteed')}
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 text-[#FFB800] shrink-0" />
                 <span className="text-xs sm:text-sm text-blue-100 font-medium">
-                  Luxe Mercedes-Benz wagens & bussen
+                  Mercedes-Benz sedans & bussen
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 text-[#FFB800] shrink-0" />
                 <span className="text-xs sm:text-sm text-blue-100 font-medium">
-                  24/7 bereikbare centrale
+                  {t('hero.available247')}
                 </span>
               </div>
             </div>
@@ -67,12 +67,9 @@ export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavi
                 onClick={onNavigateToAbout}
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#FFB800] hover:bg-yellow-400 text-[#001331] font-black text-sm shadow-lg shadow-yellow-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
               >
-                <span>Lees meer over ons verhaal</span>
+                <span>{t('about.moreBtn')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <span className="text-xs text-blue-200/80">
-                Ontdek onze vloot, visie en kwaliteitsgaranties
-              </span>
             </div>
           </div>
 
@@ -82,8 +79,8 @@ export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavi
               <div className="w-10 h-10 rounded-xl bg-[#FFB800]/20 text-[#FFB800] flex items-center justify-center mx-auto mb-3">
                 <Award className="w-5 h-5" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-white">4.9 / 5</div>
-              <p className="text-xs text-blue-200 mt-1">Klantbeoordeling op Google</p>
+              <div className="text-2xl sm:text-3xl font-black text-white">{t('about.stat3')}</div>
+              <p className="text-xs text-blue-200 mt-1">{t('about.stat3Label')}</p>
             </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/10 text-center">
@@ -91,23 +88,12 @@ export const AboutPreviewSection: React.FC<AboutPreviewSectionProps> = ({ onNavi
                 <Clock className="w-5 h-5" />
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white">99.4%</div>
-              <p className="text-xs text-blue-200 mt-1">Op tijd op bestemming</p>
+              <p className="text-xs text-blue-200 mt-1">Punctual & On Time</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/10 text-center">
-              <div className="w-10 h-10 rounded-xl bg-[#FFB800]/20 text-[#FFB800] flex items-center justify-center mx-auto mb-3">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-white">100%</div>
-              <p className="text-xs text-blue-200 mt-1">Vaste prijs garantie</p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/10 text-center">
-              <div className="w-10 h-10 rounded-xl bg-[#FFB800]/20 text-[#FFB800] flex items-center justify-center mx-auto mb-3">
-                <span className="text-base font-extrabold text-[#FFB800]">24/7</span>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-white">365 d</div>
-              <p className="text-xs text-blue-200 mt-1">Altijd bereikbaar</p>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/10 text-center col-span-2">
+              <div className="text-2xl font-black text-[#FFB800]">{t('about.stat1')}</div>
+              <p className="text-xs text-blue-200 mt-1">{t('about.stat1Label')}</p>
             </div>
           </div>
         </div>

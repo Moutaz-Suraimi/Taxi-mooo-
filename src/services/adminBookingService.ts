@@ -159,9 +159,11 @@ export const adminBookingService = {
   },
 
   updateOrderStatus(orderId: string, status: OrderStatus): void {
-    const orders = this.getOrders().map((o) =>
-      o.id === orderId ? { ...o, status } : o
-    );
+    const cleanId = orderId.replace(/^#/, '');
+    const orders = this.getOrders().map((o) => {
+      const oClean = o.id.replace(/^#/, '');
+      return (oClean === cleanId || o.id === orderId) ? { ...o, status } : o;
+    });
     try {
       localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     } catch (e) {
@@ -170,9 +172,13 @@ export const adminBookingService = {
   },
 
   assignDriver(orderId: string, driver: Driver): void {
-    const orders = this.getOrders().map((o) =>
-      o.id === orderId ? { ...o, assignedDriver: driver, status: 'toegewezen' as OrderStatus } : o
-    );
+    const cleanId = orderId.replace(/^#/, '');
+    const orders = this.getOrders().map((o) => {
+      const oClean = o.id.replace(/^#/, '');
+      return (oClean === cleanId || o.id === orderId)
+        ? { ...o, assignedDriver: driver, status: 'toegewezen' as OrderStatus }
+        : o;
+    });
     try {
       localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     } catch (e) {

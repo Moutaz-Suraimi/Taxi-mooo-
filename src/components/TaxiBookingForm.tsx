@@ -29,6 +29,7 @@ import {
   reverseGeocodeDutchGPS,
   type DutchPlace,
 } from '../utils/dutchAddressService';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface BookingData {
   pickup: string;
@@ -50,6 +51,7 @@ interface TaxiBookingFormProps {
 }
 
 export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFare }) => {
+  const { t } = useLanguage();
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [stops, setStops] = useState<string[]>([]);
@@ -138,16 +140,16 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
   // GPS Current Location Handler
   const handleRequestGPS = () => {
     if (!navigator.geolocation) {
-      setErrorMessage('Je browser ondersteunt geen GPS locatiebepaling. Voer je adres a.u.b. handmatig in.');
+      setErrorMessage(t('booking.searchingGps'));
       return;
     }
 
     setIsLocatingGPS(true);
-    setGpsStatusText('GPS-signaal zoeken in Nederland...');
+    setGpsStatusText(t('booking.searchingGps'));
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        setGpsStatusText('Adres ophalen via GPS...');
+        setGpsStatusText(t('booking.fetchingAddress'));
         const { latitude, longitude } = pos.coords;
         const address = await reverseGeocodeDutchGPS(latitude, longitude);
 
@@ -163,7 +165,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
         if (err.code === err.PERMISSION_DENIED) {
           setShowGpsModal(true);
         } else {
-          setErrorMessage('Kon geen GPS-locatie bepalen. Controleer of locatietoegang op je apparaat aan staat.');
+          setErrorMessage(t('booking.searchingGps'));
         }
       },
       { enableHighAccuracy: true, timeout: 9000 }
@@ -210,11 +212,11 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pickup.trim()) {
-      setErrorMessage('Vul a.u.b. een vertreklocatie (van) in.');
+      setErrorMessage(t('booking.validationPickup'));
       return;
     }
     if (!destination.trim()) {
-      setErrorMessage('Vul a.u.b. een bestemming (naar) in.');
+      setErrorMessage(t('booking.validationDest'));
       return;
     }
     setErrorMessage('');
@@ -261,13 +263,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               <MapPin className="w-5 h-5 fill-[#00255c] text-[#00255c]" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#07152B] tracking-tight">
-              Waar wil je heen?
+              {t('booking.whereTo')}
             </h2>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold text-[#00255c] bg-[#EBF2FC] px-3.5 py-1.5 rounded-full border border-slate-200">
             <Compass className="w-3.5 h-3.5 text-[#00255c]" />
-            <span>Google Maps Nederland 🇳🇱</span>
+            <span>Google Maps {t('booking.netherlands')} 🇳🇱</span>
           </div>
         </div>
 
@@ -280,7 +282,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 <Navigation className="w-5 h-5 text-[#00255c] rotate-45 shrink-0" />
                 <div className="flex items-center gap-2.5 w-full">
                   <span className="text-sm font-bold text-[#00255c] uppercase tracking-wider shrink-0">
-                    van
+                    {t('booking.from')}
                   </span>
                   <input
                     type="text"
@@ -290,7 +292,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       setErrorMessage('');
                     }}
                     onFocus={() => setActiveField('pickup')}
-                    placeholder="Straatnaam, postcode of stad in Nederland"
+                    placeholder={t('booking.fromPlaceholder')}
                     className="w-full bg-transparent text-sm sm:text-base font-medium text-[#07152B] placeholder:text-gray-400 focus:outline-none"
                   />
 
@@ -300,14 +302,14 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                     onClick={handleRequestGPS}
                     disabled={isLocatingGPS}
                     className="p-1.5 rounded-xl bg-blue-100/70 hover:bg-[#00255c] text-[#00255c] hover:text-[#FFD500] transition-colors shrink-0 cursor-pointer flex items-center gap-1 text-xs font-bold"
-                    title="Mijn huidige locatie gebruiken (GPS)"
+                    title={t('booking.useGps')}
                   >
                     {isLocatingGPS ? (
                       <Loader2 className="w-4 h-4 animate-spin text-[#00255c]" />
                     ) : (
                       <LocateFixed className="w-4 h-4" />
                     )}
-                    <span className="hidden sm:inline text-[11px]">GPS</span>
+                    <span className="hidden sm:inline text-[11px]">{t('booking.gps')}</span>
                   </button>
                 </div>
               </div>
@@ -316,7 +318,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               {isLocatingGPS && (
                 <div className="absolute top-full left-0 mt-1 text-xs text-[#00255c] font-bold flex items-center gap-1.5 z-40 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-200">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{gpsStatusText || 'GPS-signaal bepalen...'}</span>
+                  <span>{gpsStatusText || t('booking.searchingGps')}</span>
                 </div>
               )}
 
@@ -330,15 +332,15 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   >
                     <div className="flex items-center gap-2">
                       <LocateFixed className="w-4 h-4 text-[#00255c]" />
-                      <span>Gebruik mijn huidige locatie (GPS activeren)</span>
+                      <span>{t('booking.useMyLocation')}</span>
                     </div>
                     <span className="text-[10px] uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                      Direct
+                      {t('booking.direct')}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 px-3 py-1.5 uppercase">
-                    <span>Suggesties in Nederland</span>
+                    <span>{t('booking.suggestionsNl')}</span>
                     {isSearchingPickup && <Loader2 className="w-3 h-3 animate-spin text-[#00255c]" />}
                   </div>
 
@@ -371,7 +373,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       onClick={() => setActiveField(null)}
                       className="text-xs text-[#0B2559] font-bold hover:underline cursor-pointer"
                     >
-                      Sluiten
+                      {t('booking.close')}
                     </button>
                   </div>
                 </div>
@@ -384,7 +386,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 <MapPin className="w-5 h-5 text-[#00255c] fill-[#00255c] shrink-0" />
                 <div className="flex items-center gap-2.5 w-full">
                   <span className="text-sm font-bold text-[#00255c] uppercase tracking-wider shrink-0">
-                    naar
+                    {t('booking.to')}
                   </span>
                   <input
                     type="text"
@@ -394,7 +396,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       setErrorMessage('');
                     }}
                     onFocus={() => setActiveField('destination')}
-                    placeholder="Bestemming, luchthaven, station of straat in NL"
+                    placeholder={t('booking.toPlaceholder')}
                     className="w-full bg-transparent text-sm sm:text-base font-medium text-[#07152B] placeholder:text-gray-400 focus:outline-none"
                   />
 
@@ -414,7 +416,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               {activeField === 'destination' && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 max-h-72 overflow-y-auto animate-in fade-in duration-150">
                   <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 px-3 py-1.5 uppercase">
-                    <span>Populaire bestemmingen & adressen in NL</span>
+                    <span>{t('booking.popularDestinations')}</span>
                     {isSearchingDest && <Loader2 className="w-3 h-3 animate-spin text-[#00255c]" />}
                   </div>
 
@@ -447,7 +449,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       onClick={() => setActiveField(null)}
                       className="text-xs text-[#0B2559] font-bold hover:underline cursor-pointer"
                     >
-                      Sluiten
+                      {t('booking.close')}
                     </button>
                   </div>
                 </div>
@@ -461,13 +463,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-[#F8FAFC] border border-[#D4E2F4] rounded-2xl">
                 <MapPin className="w-4 h-4 text-[#FFB800] shrink-0" />
                 <span className="text-xs font-bold text-[#0B2559] uppercase">
-                  stop {index + 1}
+                  {t('booking.stop')} {index + 1}
                 </span>
                 <input
                   type="text"
                   value={stop}
                   onChange={(e) => handleUpdateStop(index, e.target.value)}
-                  placeholder={`Tussenstop adres in Nederland ${index + 1}`}
+                  placeholder={`${t('booking.stopPlaceholder')} ${index + 1}`}
                   className="w-full bg-transparent text-sm font-medium text-[#07152B] focus:outline-none"
                 />
               </div>
@@ -475,7 +477,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 type="button"
                 onClick={() => handleRemoveStop(index)}
                 className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition cursor-pointer"
-                title="Tussenstop verwijderen"
+                title={t('booking.removeStop')}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -492,19 +494,19 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               <div className="w-5 h-5 rounded-full bg-[#EBF2FC] group-hover:bg-[#D4E2F4] flex items-center justify-center transition">
                 <Plus className="w-3.5 h-3.5 text-[#00255c]" />
               </div>
-              <span>+ Tussenstop toevoegen</span>
+              <span>{t('booking.addStop')}</span>
             </button>
           </div>
 
-          {/* VEHICLE SELECTION ROW (Kleine auto vs Grote auto) - No prices shown here */}
+          {/* VEHICLE SELECTION ROW (Kleine auto vs Grote auto) */}
           <div className="pt-2">
             <div className="flex items-center justify-between mb-2.5">
               <label className="text-sm font-bold text-[#07152B] flex items-center gap-2">
                 <Car className="w-4 h-4 text-[#00255c]" />
-                <span>Kies type auto:</span>
+                <span>{t('booking.chooseVehicle')}</span>
               </label>
               <span className="text-xs text-gray-500">
-                Kies het gewenste formaat voor je reis
+                {t('booking.chooseVehicleSub')}
               </span>
             </div>
 
@@ -530,13 +532,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-base text-[#07152B]">Kleine auto</span>
+                      <span className="font-extrabold text-base text-[#07152B]">{t('booking.smallCar')}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-xs font-bold">
-                        3 personen
+                        {t('booking.smallCarCapacity')}
                       </span>
-                      <span className="text-xs text-gray-500">Mercedes Sedan</span>
+                      <span className="text-xs text-gray-500">{t('booking.mercedesSedan')}</span>
                     </div>
                   </div>
                 </div>
@@ -575,13 +577,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-base text-[#07152B]">Grote auto</span>
+                      <span className="font-extrabold text-base text-[#07152B]">{t('booking.largeCar')}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-xs font-bold">
-                        5 personen
+                        {t('booking.largeCarCapacity')}
                       </span>
-                      <span className="text-xs text-gray-500">Mercedes Station / Bus</span>
+                      <span className="text-xs text-gray-500">{t('booking.mercedesVan')}</span>
                     </div>
                   </div>
                 </div>
@@ -610,7 +612,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2 text-sm font-bold text-[#07152B]">
                 <Luggage className="w-4 h-4 text-[#00255c]" />
-                <span>Reis je met bagage?</span>
+                <span>{t('booking.travelWithLuggage')}</span>
               </div>
               <div className="flex items-center gap-5 mt-1">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -621,7 +623,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                     onChange={() => setHasLuggage(true)}
                     className="w-4 h-4 accent-[#00255c] cursor-pointer"
                   />
-                  <span className="text-sm font-semibold text-[#07152B]">Ja</span>
+                  <span className="text-sm font-semibold text-[#07152B]">{t('booking.yes')}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
@@ -631,7 +633,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                     onChange={() => setHasLuggage(false)}
                     className="w-4 h-4 accent-[#00255c] cursor-pointer"
                   />
-                  <span className="text-sm font-semibold text-[#07152B]">Nee</span>
+                  <span className="text-sm font-semibold text-[#07152B]">{t('booking.no')}</span>
                 </label>
               </div>
             </div>
@@ -641,10 +643,10 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               <div className="flex items-center justify-between text-sm font-bold text-[#07152B]">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#0B2559]" />
-                  <span>Aantal reizigers</span>
+                  <span>{t('booking.passengersCount')}</span>
                 </div>
                 <span className="text-[11px] font-semibold text-[#0B2559]">
-                  {vehicleType === 'klein' ? 'Max 3 pers.' : 'Max 5 pers.'}
+                  {vehicleType === 'klein' ? t('booking.max3') : t('booking.max5')}
                 </span>
               </div>
               <div className="flex items-center border border-[#D4E2F4] rounded-xl bg-[#FAF8FE] w-fit p-1 mt-1">
@@ -666,7 +668,6 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={passengers >= (vehicleType === 'klein' ? 3 : 5)}
                   aria-label="Reiziger toevoegen"
-                  title={passengers >= (vehicleType === 'klein' ? 3 : 5) ? `Maximaal ${vehicleType === 'klein' ? 3 : 5} reizigers voor dit type voertuig` : 'Reiziger toevoegen'}
                 >
                   +
                 </button>
@@ -677,7 +678,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2 text-sm font-bold text-[#07152B]">
                 <Calendar className="w-4 h-4 text-[#00255c]" />
-                <span>Ophaalmoment</span>
+                <span>{t('booking.pickupMoment')}</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <div className="relative flex-1">
@@ -686,9 +687,9 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                     onChange={(e) => setPickupDateType(e.target.value as any)}
                     className="w-full px-3 py-2 text-sm font-semibold text-[#07152B] bg-[#FAF8FE] border border-[#D4E2F4] rounded-xl focus:outline-none focus:border-[#00255c] cursor-pointer"
                   >
-                    <option value="vandaag">📅 Vandaag</option>
-                    <option value="morgen">📅 Morgen</option>
-                    <option value="custom">📅 Datum kiezen</option>
+                    <option value="vandaag">📅 {t('booking.today')}</option>
+                    <option value="morgen">📅 {t('booking.tomorrow')}</option>
+                    <option value="custom">📅 {t('booking.chooseDate')}</option>
                   </select>
                 </div>
 
@@ -719,7 +720,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               <div className="flex items-center justify-between text-sm font-bold text-[#07152B]">
                 <div className="flex items-center gap-2">
                   <Repeat className="w-4 h-4 text-[#00255c]" />
-                  <span>Retour</span>
+                  <span>{t('booking.returnTrip')}</span>
                 </div>
                 {/* Modern Toggle Switch */}
                 <button
@@ -757,7 +758,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   />
                 </div>
               ) : (
-                <span className="text-xs text-gray-400 mt-1">Geen retourrit geselecteerd</span>
+                <span className="text-xs text-gray-400 mt-1">{t('booking.noReturn')}</span>
               )}
             </div>
           </div>
@@ -777,7 +778,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
               className="inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 rounded-2xl bg-gradient-to-r from-[#24B65A] to-[#1fa251] hover:from-[#1fa251] hover:to-[#1a8e45] text-white text-base sm:text-lg font-bold shadow-lg shadow-green-600/25 hover:shadow-xl hover:shadow-green-600/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 cursor-pointer"
             >
               <Calculator className="w-5 h-5" />
-              <span>Bereken mijn ritprijs</span>
+              <span>{t('booking.calcFare')}</span>
               <ArrowRight className="w-5 h-5 ml-1" />
             </button>
           </div>
@@ -793,17 +794,10 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-[#07152B]">GPS Locatietoegang Vereist</h3>
+              <h3 className="text-xl font-black text-[#07152B]">{t('booking.gpsPermissionTitle')}</h3>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Om je huidige ophaaladres in Nederland automatisch in te stellen, heeft je browser toestemming nodig om je GPS-locatie te lezen.
+                {t('booking.gpsPermissionDesc')}
               </p>
-            </div>
-
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-left space-y-1.5 text-gray-600">
-              <div className="font-bold text-[#07152B]">Hoe schakel je GPS in?</div>
-              <div>1. Klik op het slot-icoontje 🔒 of toestemmingsicoon links in je browser-adresbalk.</div>
-              <div>2. Zet <strong>'Locatie'</strong> op <strong>'Toestaan'</strong>.</div>
-              <div>3. Klik hieronder op 'Opnieuw proberen'.</div>
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
@@ -822,7 +816,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 onClick={() => setShowGpsModal(false)}
                 className="py-3 px-4 rounded-xl border border-gray-200 text-gray-600 font-bold text-xs hover:bg-gray-50 transition cursor-pointer"
               >
-                Handmatig adres invoeren
+                {t('booking.close')}
               </button>
             </div>
           </div>

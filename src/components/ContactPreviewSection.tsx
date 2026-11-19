@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone, MessageSquare, Mail, MapPin, ArrowRight, Clock } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ContactPreviewSectionProps {
   onNavigateToContact: () => void;
@@ -10,6 +11,7 @@ export const ContactPreviewSection: React.FC<ContactPreviewSectionProps> = ({
   onNavigateToContact,
   onOpenContactModal,
 }) => {
+  const { t } = useLanguage();
   return (
     <section className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 my-14 sm:my-20">
       <div className="bg-[#FAFBFD] border border-blue-100 rounded-3xl sm:rounded-[32px] p-6 sm:p-10 lg:p-12 shadow-sm">
@@ -18,18 +20,17 @@ export const ContactPreviewSection: React.FC<ContactPreviewSectionProps> = ({
           <div className="lg:col-span-7 space-y-4">
             <div className="flex items-center gap-2">
               <span className="px-3.5 py-1.5 rounded-full bg-[#0B2559] text-[#FFB800] text-xs font-extrabold uppercase tracking-wider">
-                Contact & 24/7 Centrale
+                {t('contact.badge')}
               </span>
               <span className="h-1 w-8 bg-[#FFB800] rounded-full"></span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-[#07152B] leading-tight">
-              Altijd persoonlijk contact, 24 uur per dag
+              {t('contact.title')}
             </h2>
 
             <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              Heb je nu direct een taxi nodig, een speciale vervoersvraag of wil je een zakelijke rit
-              regelen? Onze centrale in Amsterdam is dag en nacht telefonisch en via WhatsApp bereikbaar.
+              {t('contact.sub')}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -37,15 +38,15 @@ export const ContactPreviewSection: React.FC<ContactPreviewSectionProps> = ({
                 <Clock className="w-5 h-5 text-[#0B2559] shrink-0" />
                 <div className="text-xs">
                   <div className="font-bold text-[#07152B]">24/7/365 Service</div>
-                  <div className="text-gray-500">Altijd directe dispatching</div>
+                  <div className="text-gray-500">Live dispatching</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-100/60 shadow-sm">
                 <MapPin className="w-5 h-5 text-[#0B2559] shrink-0" />
                 <div className="text-xs">
-                  <div className="font-bold text-[#07152B]">Heel Nederland</div>
-                  <div className="text-gray-500">Amsterdam, Randstad & meer</div>
+                  <div className="font-bold text-[#07152B]">{t('nationwide.badge')}</div>
+                  <div className="text-gray-500">Amsterdam, Randstad & NL</div>
                 </div>
               </div>
             </div>
@@ -55,7 +56,7 @@ export const ContactPreviewSection: React.FC<ContactPreviewSectionProps> = ({
                 onClick={onNavigateToContact}
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#0B2559] hover:bg-[#001331] text-white font-bold text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
-                <span>Volledige contactpagina & route</span>
+                <span>{t('nav.contact')}</span>
                 <ArrowRight className="w-4 h-4 text-[#FFB800]" />
               </button>
 
@@ -64,7 +65,7 @@ export const ContactPreviewSection: React.FC<ContactPreviewSectionProps> = ({
                   onClick={onOpenContactModal}
                   className="text-xs sm:text-sm font-bold text-[#0B2559] hover:underline cursor-pointer"
                 >
-                  Direct online formulier invullen
+                  {t('contact.openForm')}
                 </button>
               )}
             </div>

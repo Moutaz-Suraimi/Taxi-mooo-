@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
+  isAdminSessionValid,
+  setAdminAuthenticated,
+  clearAdminSession,
+  initAdminActivityTracker,
+} from '../services/sessionSecurity';
+import {
   Car,
   Mail,
   MapPin,
@@ -20,8 +26,10 @@ import {
   ArrowRight,
   CheckCircle2,
   Send,
+  Globe,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { useLanguage } from '../context/LanguageContext';
 import {
   adminBookingService,
   type BookingOrder,
@@ -42,10 +50,14 @@ interface AdminDashboardProps {
 type AdminTab = 'overview' | 'orders' | 'pricing' | 'inquiries';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
+  const { language, setLanguage, t } = useLanguage();
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
   // ─── AUTHENTICATION STATE ───────────────────────────────
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('taximooo_admin_auth') === 'true';
+    return isAdminSessionValid();
   });
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [loginEmail, setLoginEmail] = useState('admin@taximooo.nl');
   const [loginPassword, setLoginPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -187,8 +199,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     try {
       await supabaseDataService.loginAdmin(loginEmail, loginPassword);
-      localStorage.setItem('taximooo_admin_auth', 'true');
+      setAdminAuthenticated();
       setIsAuthenticated(true);
+      setSessionExpired(false);
       showToast('Welkom in het Taxi mooo Beheersysteem!');
     } catch (err: any) {
       setAuthError(err.message || 'Onjuist e-mailadres of wachtwoord.');
@@ -198,9 +211,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   };
 
   const handleAdminLogout = () => {
-    localStorage.removeItem('taximooo_admin_auth');
+    clearAdminSession();
     setIsAuthenticated(false);
+    setSessionExpired(false);
   };
+
+  // ─── SESSION TIMEOUT TRACKER ────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const cleanup = initAdminActivityTracker(() => {
+      setIsAuthenticated(false);
+      setSessionExpired(true);
+    });
+    return cleanup;
+  }, [isAuthenticated]);
 
   const handleFillDemoCredentials = () => {
     setLoginEmail('admin@taximooo.nl');
@@ -330,6 +354,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   // ════════════════════════════════════════════════════════
   // 1. ADMIN LOGIN VIEW (IF NOT AUTHENTICATED)
   // ════════════════════════════════════════════════════════
+
+  // Session expired overlay
+  if (sessionExpired) {
+    return (
+      <div className="min-h-screen bg-[#000E24] flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden font-sans">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00255c]/40 rounded-full blur-[140px] pointer-events-none" />
+        <div className="relative w-full max-w-sm bg-white rounded-3xl p-8 sm:p-10 shadow-2xl text-center space-y-6 z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#001331] rounded-2xl mx-auto">
+            <Lock className="w-8 h-8 text-[#FFB800]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[#001331]">{t('admin.sessionExpired')}</h2>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              {t('admin.sessionExpiredSub')}
+            </p>
+          </div>
+          <button
+            onClick={() => setSessionExpired(false)}
+            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#001331] via-[#001d4a] to-[#00255c] text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all cursor-pointer"
+          >
+            {t('client.relogin')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#000E24] flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden font-sans selection:bg-[#FFB800] selection:text-[#001331]">
@@ -341,8 +392,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           onClick={onExit}
           className="absolute top-6 left-6 flex items-center gap-2 text-white/80 hover:text-[#FFB800] text-sm font-semibold transition cursor-pointer"
         >
-          <span>← Terug naar website</span>
+          <span>← {t('common.back')}</span>
         </button>
+
+        {/* Language switch on login screen */}
+        <div className="absolute top-6 right-6">
+          <button
+            type="button"
+            onClick={() => setLanguage(language === 'nl' ? 'en' : 'nl')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition border border-white/15 cursor-pointer"
+            title="Switch Language"
+          >
+            <Globe className="w-3.5 h-3.5 text-[#FFB800]" />
+            <span>{language === 'nl' ? '🇳🇱 NL' : '🇬🇧 EN'}</span>
+          </button>
+        </div>
 
         <div className="relative w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border border-white/20 space-y-6 z-10">
           {/* Logo & Header */}
@@ -447,31 +511,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           <div className="hidden sm:block h-7 w-[1px] bg-white/15" />
           <div className="hidden sm:flex flex-col">
             <span className="text-xs font-black uppercase tracking-wider text-[#FFB800]">
-              Dispatch & Management
+              {t('admin.dispatch')}
             </span>
             <span className="text-[11px] text-blue-200/80">
-              Centrale Haarlem • 24/7 Live
+              {t('admin.haarlem')}
             </span>
           </div>
         </div>
 
         {/* Right: Actions & User */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language Switcher */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition cursor-pointer border border-white/10"
+              title="Change Language"
+            >
+              <Globe className="w-3.5 h-3.5 text-[#FFB800]" />
+              <span>{language === 'nl' ? '🇳🇱 NL' : '🇬🇧 EN'}</span>
+            </button>
+            {langDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setLangDropdownOpen(false)} />
+                <div className="absolute right-0 mt-2 w-36 bg-[#001331] border border-white/15 rounded-xl shadow-2xl py-1 z-50 text-xs font-bold">
+                  <button
+                    onClick={() => { setLanguage('nl'); setLangDropdownOpen(false); }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between ${language === 'nl' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <span>🇳🇱 Nederlands</span>
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('en'); setLangDropdownOpen(false); }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between ${language === 'en' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <span>🇬🇧 English</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={onExit}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition cursor-pointer border border-white/10"
           >
             <ExternalLink className="w-3.5 h-3.5 text-[#FFB800]" />
-            <span className="hidden sm:inline">Klantensite bekijken</span>
+            <span className="hidden sm:inline">{t('admin.viewSite')}</span>
           </button>
 
           <button
             onClick={handleAdminLogout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs font-bold transition cursor-pointer border border-red-500/30"
-            title="Uitloggen"
+            title={t('admin.logout')}
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Uitloggen</span>
+            <span className="hidden sm:inline">{t('admin.logout')}</span>
           </button>
         </div>
       </header>
@@ -493,10 +589,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             {/* Navigation Tabs */}
             <nav className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible no-scrollbar pb-1 lg:pb-0">
               {[
-                { id: 'orders' as AdminTab, label: 'Ritorders', icon: <Car className="w-4 h-4" />, badge: newOrdersCount },
-                { id: 'overview' as AdminTab, label: 'Overzicht & KPI', icon: <TrendingUp className="w-4 h-4" /> },
-                { id: 'inquiries' as AdminTab, label: 'Berichten', icon: <MessageSquare className="w-4 h-4" />, badge: inquiries.filter(i => !i.isRead).length },
-                { id: 'pricing' as AdminTab, label: 'Tarieven & Beheer', icon: <Settings className="w-4 h-4" /> },
+                { id: 'orders' as AdminTab, label: t('admin.orders'), icon: <Car className="w-4 h-4" />, badge: newOrdersCount },
+                { id: 'overview' as AdminTab, label: t('admin.overview'), icon: <TrendingUp className="w-4 h-4" /> },
+                { id: 'inquiries' as AdminTab, label: t('admin.inquiries'), icon: <MessageSquare className="w-4 h-4" />, badge: inquiries.filter(i => !i.isRead).length },
+                { id: 'pricing' as AdminTab, label: t('admin.pricing'), icon: <Settings className="w-4 h-4" /> },
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (

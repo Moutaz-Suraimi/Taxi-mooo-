@@ -1,7 +1,9 @@
 import React from 'react';
 import { ShieldCheck, Zap, ThumbsUp, Headphones } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export const FeaturesSection: React.FC = () => {
+  const { t } = useLanguage();
   const features = [
     {
       icon: (
@@ -9,8 +11,8 @@ export const FeaturesSection: React.FC = () => {
           <ShieldCheck className="w-8 h-8 text-[#00255c] stroke-[2.2]" />
         </div>
       ),
-      title: 'Veilig & Betrouwbaar',
-      description: 'Jouw veiligheid staat voorop',
+      title: t('features.safeTitle'),
+      description: t('features.safeDesc'),
     },
     {
       icon: (
@@ -19,8 +21,8 @@ export const FeaturesSection: React.FC = () => {
           <span className="absolute text-[9px] font-black text-[#00255c] -bottom-0.5">24</span>
         </div>
       ),
-      title: '24/7 Beschikbaar',
-      description: 'Altijd een taxi, dag en nacht',
+      title: t('features.availableTitle'),
+      description: t('features.availableDesc'),
     },
     {
       icon: (
@@ -28,8 +30,8 @@ export const FeaturesSection: React.FC = () => {
           <Zap className="w-8 h-8 text-[#00255c] fill-[#00255c]" />
         </div>
       ),
-      title: 'Snel & Eenvoudig',
-      description: 'Boek in enkele klikken',
+      title: t('features.fastTitle'),
+      description: t('features.fastDesc'),
     },
     {
       icon: (
@@ -37,8 +39,8 @@ export const FeaturesSection: React.FC = () => {
           <ThumbsUp className="w-8 h-8 text-[#00255c] fill-[#00255c]" />
         </div>
       ),
-      title: 'Beste Prijs',
-      description: 'Kwaliteit tegen een eerlijke prijs',
+      title: t('features.bestPriceTitle'),
+      description: t('features.bestPriceDesc'),
     },
   ];
 

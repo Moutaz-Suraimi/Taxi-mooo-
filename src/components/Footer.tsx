@@ -2,6 +2,7 @@ import React from 'react';
 import { Logo } from './Logo';
 import { Phone, Mail, MapPin, ShieldCheck, ArrowUp } from 'lucide-react';
 import type { PageType } from './Header';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FooterProps {
   onNavigate: (page: PageType) => void;
@@ -9,6 +10,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }) => {
+  const { t } = useLanguage();
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -38,7 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
           {/* Col 2: Snelle Links naar Pagina's */}
           <div className="space-y-3">
             <h4 className="font-bold text-sm tracking-wider uppercase text-[#FFB800]">
-              Pagina's & Info
+              {t('footer.quickLinks')}
             </h4>
             <ul className="space-y-2.5 text-xs sm:text-sm text-blue-200/80">
               <li>
@@ -46,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('home')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Home / Boek een taxi</span>
+                  <span>{t('nav.home')}</span>
                 </button>
               </li>
               <li>
@@ -54,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('about')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Over Taxi mooo</span>
+                  <span>{t('nav.about')}</span>
                 </button>
               </li>
               <li>
@@ -62,7 +64,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('services')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Onze Diensten & Vloot</span>
+                  <span>{t('nav.services')}</span>
                 </button>
               </li>
               <li>
@@ -70,7 +72,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('reviews')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Klantbeoordelingen (Reviews)</span>
+                  <span>{t('nav.reviews')}</span>
                 </button>
               </li>
               <li>
@@ -78,7 +80,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('faq')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Veelgestelde vragen (FAQ)</span>
+                  <span>{t('nav.faq')}</span>
                 </button>
               </li>
               <li>
@@ -86,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                   onClick={() => onNavigate('contact')}
                   className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>Contact & Dispatch Centrale</span>
+                  <span>{t('nav.contact')}</span>
                 </button>
               </li>
             </ul>

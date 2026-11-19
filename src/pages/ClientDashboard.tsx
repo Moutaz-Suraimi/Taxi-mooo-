@@ -4,10 +4,18 @@ import {
   CheckCircle2, LogOut, ChevronRight, MapPin,
   Headphones, Bell, ChevronDown, ArrowRight,
   Home, Menu, X, Phone, Lock, Key, Smartphone, Laptop,
-  Eye, EyeOff, AlertTriangle, MessageSquare, Send,
+  Eye, EyeOff, AlertTriangle, MessageSquare, Send, Globe,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabaseDataService, mapSupabaseOrderToBookingOrder } from '../services/supabaseDataService';
+import { adminBookingService } from '../services/adminBookingService';
+import { useLanguage } from '../context/LanguageContext';
+import {
+  getValidClientUser,
+  setClientSession,
+  clearClientSession,
+  initClientActivityTracker,
+} from '../services/sessionSecurity';
 
 // ─── Brand tokens ──────────────────────────────────────
 const NAVY   = '#001331';
@@ -37,10 +45,12 @@ export interface ClientNotification {
 
 type DashSection =
   | 'dashboard'
+  | 'ritten'
   | 'accountgegevens'
   | 'beveiliging'
   | 'betaalmethoden'
-  | 'klantenservice';
+  | 'klantenservice'
+  | 'reservering';
 
 interface ClientDashboardProps {
   onExit: () => void;
@@ -58,36 +68,12 @@ function getInitials(name: string): string {
     .toUpperCase() || 'TM';
 }
 
-// ─── Sidebar nav items ──────────────────────────────────
-const NAV_ITEMS: { id: DashSection; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard',      label: 'Dashboard',           icon: <Home className="w-4 h-4" /> },
-  { id: 'accountgegevens',label: 'Accountgegevens',    icon: <User className="w-4 h-4" /> },
-  { id: 'beveiliging',   label: 'Inloggen & beveiliging', icon: <Shield className="w-4 h-4" /> },
-  { id: 'betaalmethoden', label: 'Betaalmethoden',     icon: <CreditCard className="w-4 h-4" /> },
-  { id: 'klantenservice',label: 'Klantenservice',       icon: <Headphones className="w-4 h-4" /> },
-];
-
-// ─── GRID MENU CARDS (main dashboard) ───────────────────
-const MENU_CARDS: {
-  id: DashSection;
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
-  span?: boolean;
-}[] = [
-  { id: 'accountgegevens', icon: <User className="w-5 h-5" />,       title: 'Accountgegevens',        sub: 'Bekijk en wijzig je gegevens' },
-  { id: 'beveiliging',     icon: <Shield className="w-5 h-5" />,     title: 'Inloggen & beveiliging', sub: 'Beveilig je account' },
-  { id: 'betaalmethoden',  icon: <CreditCard className="w-5 h-5" />, title: 'Betaalmethoden',          sub: 'Beheer je betaalmethoden' },
-  { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: 'Klantenservice',          sub: 'Hulp nodig? Neem contact met ons op' },
-];
-
-// ─── Mock recent rides ─── REMOVED (now uses live Supabase data) ───
-
 // ══════════════════════════════════════════════════════════
 //  SECTION VIEWS
 // ══════════════════════════════════════════════════════════
 
 function SectionPlaceholder({ title, description, icon }: { title: string; description: string; icon: React.ReactElement<{ className?: string }> }) {
+  const { language } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center min-h-[320px] text-center px-6">
       <div
@@ -102,7 +88,7 @@ function SectionPlaceholder({ title, description, icon }: { title: string; descr
         className="mt-6 px-6 py-3 rounded-2xl text-sm font-bold text-[#001331] shadow"
         style={{ background: YELLOW }}
       >
-        Binnenkort beschikbaar
+        {language === 'en' ? 'Coming Soon' : 'Binnenkort beschikbaar'}
       </div>
     </div>
   );
@@ -110,6 +96,7 @@ function SectionPlaceholder({ title, description, icon }: { title: string; descr
 
 // ─── ACCOUNT INFO SECTION ───────────────────────────────
 function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: Partial<AuthUser>) => void }) {
+  const { t, language } = useLanguage();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone);
   const [saved, setSaved] = useState(false);
@@ -125,13 +112,13 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
   return (
     <div className="space-y-6 max-w-xl">
       <div>
-        <h2 className="text-xl font-black text-[#001331] mb-1">Accountgegevens</h2>
-        <p className="text-sm text-gray-500">Bekijk en wijzig je persoonlijke gegevens.</p>
+        <h2 className="text-xl font-black text-[#001331] mb-1">{t('client.accountDetails')}</h2>
+        <p className="text-sm text-gray-500">{language === 'en' ? 'View and update your personal information.' : 'Bekijk en wijzig je persoonlijke gegevens.'}</p>
       </div>
 
       {saved && (
         <div className="p-3.5 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-2 text-sm text-green-700 font-semibold">
-          <CheckCircle2 className="w-4 h-4 shrink-0" /> Gegevens opgeslagen!
+          <CheckCircle2 className="w-4 h-4 shrink-0" /> {t('client.saved')}
         </div>
       )}
 
@@ -150,7 +137,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mt-1"
             style={{ background: YELLOW, color: NAVY }}
           >
-            👑 Premium klant
+            👑 {t('client.premiumCustomer')}
           </span>
         </div>
       </div>
@@ -158,7 +145,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
       <form onSubmit={handleSave} className="space-y-4">
         {/* Name */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">Volledige naam</label>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">{language === 'en' ? 'Full Name' : 'Volledige naam'}</label>
           <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-2xl focus-within:border-[#00255c] focus-within:ring-4 focus-within:ring-[#00255c]/10 transition">
             <User className="w-4 h-4 text-gray-400 shrink-0" />
             <input
@@ -172,7 +159,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
 
         {/* Email (readonly) */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">E-mailadres</label>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">{language === 'en' ? 'Email Address' : 'E-mailadres'}</label>
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl opacity-70">
             <Mail className="w-4 h-4 text-gray-400 shrink-0" />
             <input
@@ -182,12 +169,12 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
               className="w-full bg-transparent text-sm text-gray-500 focus:outline-none cursor-not-allowed"
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1 ml-1">E-mailadres kan niet worden gewijzigd.</p>
+          <p className="text-xs text-gray-400 mt-1 ml-1">{language === 'en' ? 'Email address cannot be changed.' : 'E-mailadres kan niet worden gewijzigd.'}</p>
         </div>
 
         {/* Phone */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">Telefoonnummer</label>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">{language === 'en' ? 'Phone Number' : 'Telefoonnummer'}</label>
           <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-2xl focus-within:border-[#00255c] focus-within:ring-4 focus-within:ring-[#00255c]/10 transition">
             <Phone className="w-4 h-4 text-gray-400 shrink-0" />
             <input
@@ -204,7 +191,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
           className="px-6 py-3 rounded-2xl text-sm font-bold text-[#001331] shadow hover:shadow-md transition"
           style={{ background: YELLOW }}
         >
-          Wijzigingen opslaan
+          {t('client.saveChanges')}
         </button>
       </form>
     </div>
@@ -213,6 +200,7 @@ function AccountGegevensSection({ user, onSave }: { user: AuthUser; onSave: (u: 
 
 // ─── INLOGGEN & BEVEILIGING SECTION ─────────────────────
 function BeveiligingSection({ user }: { user: AuthUser }) {
+  const { t, language } = useLanguage();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -227,27 +215,23 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [twoFactorToast, setTwoFactorToast] = useState('');
 
-  // Security notification toggles
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [smsAlerts, setSmsAlerts] = useState(false);
-
   // Active Sessions
   const [sessions, setSessions] = useState([
     {
       id: 'sess-1',
-      device: 'Dit apparaat (Huidige browser)',
+      device: language === 'en' ? 'This device (Current browser)' : 'Dit apparaat (Huidige browser)',
       detail: 'Chrome browser • Windows 11',
       location: 'Haarlem, Nederland',
-      time: 'Nu actief',
+      time: language === 'en' ? 'Active now' : 'Nu actief',
       isCurrent: true,
       isMobile: false,
     },
     {
       id: 'sess-2',
-      device: 'Mobiele telefoon',
+      device: language === 'en' ? 'Mobile phone' : 'Mobiele telefoon',
       detail: 'Safari Mobile • Apple iPhone',
       location: 'Amsterdam, Nederland',
-      time: 'Gisteren om 18:42',
+      time: language === 'en' ? 'Yesterday at 18:42' : 'Gisteren om 18:42',
       isCurrent: false,
       isMobile: true,
     },
@@ -262,8 +246,6 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
     supabaseDataService.getSecuritySettings(user.email).then((settings) => {
       if (settings) {
         setTwoFactorEnabled(Boolean(settings.two_factor_enabled));
-        setEmailAlerts(Boolean(settings.email_alerts));
-        setSmsAlerts(Boolean(settings.sms_alerts));
       }
     });
 
@@ -276,7 +258,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
             device: s.device_name,
             detail: `${s.browser} • ${s.location || 'Nederland'}`,
             location: s.location || 'Nederland',
-            time: s.is_current ? 'Nu actief' : new Date(s.last_active).toLocaleDateString('nl-NL'),
+            time: s.is_current ? (language === 'en' ? 'Active now' : 'Nu actief') : new Date(s.last_active).toLocaleDateString(language === 'en' ? 'en-GB' : 'nl-NL'),
             isCurrent: Boolean(s.is_current),
             isMobile: s.device_name.toLowerCase().includes('phone') || s.device_name.toLowerCase().includes('mobiel'),
           }))
@@ -284,7 +266,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
       } else {
         // Automatically register the current active session in Supabase
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const deviceName = isMobile ? 'Mobiel apparaat' : 'Dit apparaat (Huidige browser)';
+        const deviceName = isMobile ? (language === 'en' ? 'Mobile device' : 'Mobiel apparaat') : (language === 'en' ? 'This device (Current browser)' : 'Dit apparaat (Huidige browser)');
         const browser = navigator.userAgent.includes('Chrome')
           ? 'Chrome browser'
           : navigator.userAgent.includes('Safari')
@@ -298,21 +280,21 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
         });
       }
     });
-  }, [user?.email]);
+  }, [user?.email, language]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     if (!currentPassword) {
-      setPasswordError('Vul je huidige wachtwoord in.');
+      setPasswordError(language === 'en' ? 'Please enter your current password.' : 'Vul je huidige wachtwoord in.');
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError('Het nieuwe wachtwoord moet minimaal 6 tekens bevatten.');
+      setPasswordError(language === 'en' ? 'New password must be at least 6 characters.' : 'Het nieuwe wachtwoord moet minimaal 6 tekens bevatten.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('De nieuwe wachtwoorden komen niet overeen.');
+      setPasswordError(language === 'en' ? 'New passwords do not match.' : 'De nieuwe wachtwoorden komen niet overeen.');
       return;
     }
 
@@ -327,7 +309,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
       setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(false), 3500);
     } catch {
-      setPasswordError('Er is een fout opgetreden bij het bijwerken van het wachtwoord.');
+      setPasswordError(language === 'en' ? 'An error occurred while updating the password.' : 'Er is een fout opgetreden bij het bijwerken van het wachtwoord.');
     } finally {
       setIsSubmittingPassword(false);
     }
@@ -343,28 +325,10 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
     }
     setTwoFactorToast(
       next
-        ? 'Twee-staps verificatie (2FA) is succesvol ingeschakeld.'
-        : 'Twee-staps verificatie (2FA) is uitgeschakeld.'
+        ? (language === 'en' ? 'Two-Factor Authentication (2FA) is now enabled.' : 'Twee-staps verificatie (2FA) is succesvol ingeschakeld.')
+        : (language === 'en' ? 'Two-Factor Authentication (2FA) is disabled.' : 'Twee-staps verificatie (2FA) is uitgeschakeld.')
     );
     setTimeout(() => setTwoFactorToast(''), 3000);
-  };
-
-  const handleToggleEmailAlerts = async (checked: boolean) => {
-    setEmailAlerts(checked);
-    if (user?.email) {
-      await supabaseDataService.updateSecuritySettings(user.email, {
-        email_alerts: checked,
-      });
-    }
-  };
-
-  const handleToggleSmsAlerts = async (checked: boolean) => {
-    setSmsAlerts(checked);
-    if (user?.email) {
-      await supabaseDataService.updateSecuritySettings(user.email, {
-        sms_alerts: checked,
-      });
-    }
   };
 
   const handleTerminateOtherSessions = async () => {
@@ -372,7 +336,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
       await supabaseDataService.terminateOtherSessions(user.email);
     }
     setSessions((prev) => prev.filter((s) => s.isCurrent));
-    setSessionsToast('Je bent succesvol uitgelogd op alle andere apparaten.');
+    setSessionsToast(language === 'en' ? 'Logged out from all other devices successfully.' : 'Je bent succesvol uitgelogd op alle andere apparaten.');
     setTimeout(() => setSessionsToast(''), 3500);
   };
 
@@ -380,9 +344,9 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
     <div className="space-y-6 max-w-2xl">
       {/* Title */}
       <div>
-        <h2 className="text-xl font-black text-[#001331] mb-1">Inloggen & beveiliging</h2>
+        <h2 className="text-xl font-black text-[#001331] mb-1">{t('client.loginSecurity')}</h2>
         <p className="text-sm text-gray-500">
-          Beheer je wachtwoord, twee-staps verificatie en actieve apparaten voor een veilig account.
+          {language === 'en' ? 'Manage your password, two-factor authentication and active sessions.' : 'Beheer je wachtwoord, twee-staps verificatie en actieve apparaten voor een veilig account.'}
         </p>
       </div>
 
@@ -394,13 +358,13 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm sm:text-base">Accountbeveiliging</span>
+              <span className="font-extrabold text-sm sm:text-base">{t('client.securityScore')}</span>
               <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Uitstekend (95%)
+                {language === 'en' ? 'Excellent (95%)' : 'Uitstekend (95%)'}
               </span>
             </div>
             <p className="text-xs text-white/70 mt-0.5">
-              Je gegevens zijn versleuteld en beveiligd met 256-bit SSL-encryptie.
+              {language === 'en' ? 'Your information is encrypted with 256-bit SSL security.' : 'Je gegevens zijn versleuteld en beveiligd met 256-bit SSL-encryptie.'}
             </p>
           </div>
         </div>
@@ -413,15 +377,15 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
             <Key className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-[#001331]">Wachtwoord wijzigen</h3>
-            <p className="text-xs text-gray-400">Kies een sterk wachtwoord van minimaal 6 tekens.</p>
+            <h3 className="text-sm font-extrabold text-[#001331]">{t('client.changePassword')}</h3>
+            <p className="text-xs text-gray-400">{language === 'en' ? 'Choose a strong password of at least 6 characters.' : 'Kies een sterk wachtwoord van minimaal 6 tekens.'}</p>
           </div>
         </div>
 
         {passwordSuccess && (
           <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 text-xs sm:text-sm text-green-700 font-semibold animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-            <span>Wachtwoord succesvol bijgewerkt!</span>
+            <span>{language === 'en' ? 'Password updated successfully!' : 'Wachtwoord succesvol bijgewerkt!'}</span>
           </div>
         )}
 
@@ -435,14 +399,14 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
         <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
           {/* Current Password */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Huidig wachtwoord</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">{t('client.currentPassword')}</label>
             <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
               <Lock className="w-4 h-4 text-gray-400 shrink-0" />
               <input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Voer je huidige wachtwoord in"
+                placeholder={language === 'en' ? 'Enter current password' : 'Voer je huidige wachtwoord in'}
                 className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
               />
               <button
@@ -458,14 +422,14 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* New Password */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Nieuw wachtwoord</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('client.newPassword')}</label>
               <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
                 <Lock className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type={showNew ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimaal 6 tekens"
+                  placeholder={language === 'en' ? 'Min. 6 characters' : 'Minimaal 6 tekens'}
                   className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
                 />
                 <button
@@ -480,14 +444,14 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Bevestig nieuw wachtwoord</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t('client.confirmNewPassword')}</label>
               <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-[#00255c] focus-within:bg-white transition">
                 <Lock className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Herhaal nieuw wachtwoord"
+                  placeholder={language === 'en' ? 'Repeat new password' : 'Herhaal nieuw wachtwoord'}
                   className="w-full bg-transparent text-xs sm:text-sm focus:outline-none"
                 />
                 <button
@@ -507,7 +471,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
             className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-[#001331] shadow hover:shadow-md transition cursor-pointer disabled:opacity-50"
             style={{ background: YELLOW }}
           >
-            {isSubmittingPassword ? 'Bezig met bijwerken...' : 'Wachtwoord bijwerken'}
+            {isSubmittingPassword ? (language === 'en' ? 'Updating...' : 'Bezig met bijwerken...') : t('client.updatePasswordBtn')}
           </button>
         </form>
       </div>
@@ -520,9 +484,9 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
               <Smartphone className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-[#001331]">Twee-staps verificatie (2FA)</h3>
+              <h3 className="text-sm font-extrabold text-[#001331]">{t('client.twoFactor')}</h3>
               <p className="text-xs text-gray-400">
-                Verifieer je identiteit via een beveiligingscode bij inloggen vanaf een nieuw apparaat.
+                {language === 'en' ? 'Verify your identity using a security code when logging in from new devices.' : 'Verifieer je identiteit via een beveiligingscode bij inloggen vanaf een nieuw apparaat.'}
               </p>
             </div>
           </div>
@@ -551,7 +515,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
 
         <div className="text-xs text-gray-500 pt-1 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-          <span>Verificatiecodes worden verzonden naar: <strong className="text-gray-800">{user.email}</strong></span>
+          <span>{language === 'en' ? 'Verification codes will be sent to:' : 'Verificatiecodes worden verzonden naar:'} <strong className="text-gray-800">{user.email}</strong></span>
         </div>
       </div>
 
@@ -563,8 +527,8 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
               <Laptop className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-[#001331]">Actieve apparaten & sessies</h3>
-              <p className="text-xs text-gray-400">Overzicht van apparaten waarop je momenteel bent ingelogd.</p>
+              <h3 className="text-sm font-extrabold text-[#001331]">{t('client.activeSessions')}</h3>
+              <p className="text-xs text-gray-400">{language === 'en' ? 'Overview of devices currently logged in to your account.' : 'Overzicht van apparaten waarop je momenteel bent ingelogd.'}</p>
             </div>
           </div>
 
@@ -573,7 +537,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
               onClick={handleTerminateOtherSessions}
               className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
             >
-              Overal uitloggen
+              {t('client.terminateAllSessions')}
             </button>
           )}
         </div>
@@ -596,7 +560,7 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
                     <span>{s.device}</span>
                     {s.isCurrent && (
                       <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded">
-                        Huidig
+                        {language === 'en' ? 'Current' : 'Huidig'}
                       </span>
                     )}
                   </div>
@@ -606,41 +570,6 @@ function BeveiligingSection({ user }: { user: AuthUser }) {
               <span className="text-gray-500 font-medium shrink-0">{s.time}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* ── CARD 4: MELDINGEN & PRIVACY ── */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <h3 className="text-sm font-extrabold text-[#001331] pb-2 border-b border-gray-100">
-          Beveiligingswaarschuwingen
-        </h3>
-
-        <div className="space-y-3">
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <span className="text-xs font-bold text-gray-800 block">Inlogwaarschuwingen via e-mail</span>
-              <span className="text-[11px] text-gray-400">Krijg direct bericht bij inloggen vanaf een onbekende locatie</span>
-            </div>
-            <input
-              type="checkbox"
-              checked={emailAlerts}
-              onChange={(e) => handleToggleEmailAlerts(e.target.checked)}
-              className="w-4 h-4 text-[#001331] rounded accent-[#001331] cursor-pointer"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <span className="text-xs font-bold text-gray-800 block">SMS-bevestigingen</span>
-              <span className="text-[11px] text-gray-400">Verzend sms-code bij gevoelige account- of ritwijzigingen</span>
-            </div>
-            <input
-              type="checkbox"
-              checked={smsAlerts}
-              onChange={(e) => handleToggleSmsAlerts(e.target.checked)}
-              className="w-4 h-4 text-[#001331] rounded accent-[#001331] cursor-pointer"
-            />
-          </label>
         </div>
       </div>
     </div>
@@ -654,7 +583,8 @@ function KlantenserviceSection({
   onContact?: () => void;
   user: AuthUser;
 }) {
-  const [subject, setSubject] = useState('Algemene vraag');
+  const { t, language } = useLanguage();
+  const [subject, setSubject] = useState(language === 'en' ? 'General question' : 'Algemene vraag');
   const [customSubject, setCustomSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -663,7 +593,13 @@ function KlantenserviceSection({
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(false);
 
-  const quickSubjects = [
+  const quickSubjects = language === 'en' ? [
+    'General question',
+    'Ride modification',
+    'Price quote',
+    'Payment & Invoice',
+    'Other',
+  ] : [
     'Algemene vraag',
     'Ritwijziging',
     'Prijsopgave / Offerte',
@@ -691,13 +627,14 @@ function KlantenserviceSection({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
-      setSubmitError('Vul a.u.b. een bericht in.');
+      setSubmitError(language === 'en' ? 'Please enter a message.' : 'Vul a.u.b. een bericht in.');
       return;
     }
     setSubmitError('');
     setIsSubmitting(true);
 
-    const finalSubject = subject === 'Overig' && customSubject.trim() ? customSubject.trim() : subject;
+    const isOther = subject === 'Overig' || subject === 'Other';
+    const finalSubject = isOther && customSubject.trim() ? customSubject.trim() : subject;
 
     try {
       await supabaseDataService.submitInquiry({
@@ -713,7 +650,7 @@ function KlantenserviceSection({
       await loadUserInquiries();
       setTimeout(() => setSubmitSuccess(false), 5000);
     } catch (err: any) {
-      setSubmitError(err.message || 'Er is een fout opgetreden bij het verzenden.');
+      setSubmitError(err.message || (language === 'en' ? 'An error occurred while sending.' : 'Er is een fout opgetreden bij het verzenden.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -722,8 +659,8 @@ function KlantenserviceSection({
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-xl font-black text-[#001331] mb-1">Klantenservice & Centrale</h2>
-        <p className="text-sm text-gray-500">24/7 bereikbaar voor ondersteuning, ritwijzigingen en vragen.</p>
+        <h2 className="text-xl font-black text-[#001331] mb-1">{t('client.customerService')} & {language === 'en' ? 'Dispatch' : 'Centrale'}</h2>
+        <p className="text-sm text-gray-500">{language === 'en' ? 'Available 24/7 for support, ride changes and questions.' : '24/7 bereikbaar voor ondersteuning, ritwijzigingen en vragen.'}</p>
       </div>
 
       {/* Direct Contact Cards */}
@@ -737,7 +674,7 @@ function KlantenserviceSection({
             <Phone className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-gray-400 font-semibold uppercase">Bellen (24/7)</div>
+            <div className="text-xs text-gray-400 font-semibold uppercase">{t('client.callCentral')}</div>
             <div className="text-base font-black text-[#07152B] group-hover:text-[#00255c] transition">+31 6 41212427</div>
           </div>
         </a>
@@ -753,7 +690,7 @@ function KlantenserviceSection({
             <Headphones className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-gray-400 font-semibold uppercase">WhatsApp Chat</div>
+            <div className="text-xs text-gray-400 font-semibold uppercase">{t('client.whatsappChat')}</div>
             <div className="text-base font-black text-[#07152B] group-hover:text-green-600 transition">+31 6 41212427</div>
           </div>
         </a>
@@ -767,7 +704,7 @@ function KlantenserviceSection({
             <Mail className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-gray-400 font-semibold uppercase">E-mail support</div>
+            <div className="text-xs text-gray-400 font-semibold uppercase">{t('client.emailSupport')}</div>
             <div className="text-base font-black text-[#07152B]">info@taximooo.nl</div>
           </div>
         </a>
@@ -984,24 +921,514 @@ function KlantenserviceSection({
   );
 }
 
-// ─── MAIN DASHBOARD ─────────────────────────────────────
-interface RecentRide {
+// ─── RIDES & STATUS HELPERS ──────────────────────────────
+export interface RecentRide {
+  id: string;
+  rawStatus: string;
   from: string;
   to: string;
   date: string;
   time: string;
   status: string;
   price: string;
+  driverName?: string;
+  vehicleType?: string;
 }
 
-function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading, unreadNotifications }: {
+function getStatusBadge(rawStatus: string, label: string) {
+  const s = (rawStatus || '').toLowerCase();
+  switch (s) {
+    case 'nieuw':
+    case 'bevestigd':
+      return (
+        <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0">
+          <Clock className="w-3 h-3 text-amber-600" />
+          <span>{label || 'Nieuw'}</span>
+        </span>
+      );
+    case 'toegewezen':
+      return (
+        <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0">
+          <Car className="w-3 h-3 text-blue-600" />
+          <span>{label || 'Toegewezen'}</span>
+        </span>
+      );
+    case 'onderweg':
+      return (
+        <span className="px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0 animate-pulse">
+          <MapPin className="w-3 h-3 text-purple-600" />
+          <span>{label || 'Onderweg'}</span>
+        </span>
+      );
+    case 'voltooid':
+      return (
+        <span className="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0">
+          <CheckCircle2 className="w-3 h-3 text-green-600" />
+          <span>{label || 'Voltooid'}</span>
+        </span>
+      );
+    case 'geannuleerd':
+      return (
+        <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0">
+          <X className="w-3 h-3 text-red-600" />
+          <span>{label || 'Geannuleerd'}</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="px-2.5 py-1 bg-gray-50 text-gray-700 border border-gray-200 font-bold rounded-full text-[11px] flex items-center gap-1 shrink-0">
+          <span>{label}</span>
+        </span>
+      );
+  }
+}
+
+// ─── FULL RITTEN SECTION (Mijn ritten met alle filters) ────
+function RittenSection({
+  rides,
+  ridesLoading,
+  onRefresh,
+}: {
+  rides: RecentRide[];
+  ridesLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'nieuw' | 'toegewezen' | 'onderweg' | 'voltooid' | 'geannuleerd'>('all');
+
+  const filterTabs = [
+    { id: 'all', label: 'Alle', count: rides.length },
+    { id: 'nieuw', label: 'Nieuw', count: rides.filter(r => r.rawStatus === 'nieuw' || r.rawStatus === 'bevestigd').length },
+    { id: 'toegewezen', label: 'Toegewezen', count: rides.filter(r => r.rawStatus === 'toegewezen').length },
+    { id: 'onderweg', label: 'Onderweg', count: rides.filter(r => r.rawStatus === 'onderweg').length },
+    { id: 'voltooid', label: 'Voltooid', count: rides.filter(r => r.rawStatus === 'voltooid').length },
+    { id: 'geannuleerd', label: 'Geannuleerd', count: rides.filter(r => r.rawStatus === 'geannuleerd').length },
+  ];
+
+  const filteredRides = rides.filter((r) => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'nieuw') return r.rawStatus === 'nieuw' || r.rawStatus === 'bevestigd';
+    return r.rawStatus === statusFilter;
+  });
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-[#001331] mb-1">Mijn ritten</h2>
+          <p className="text-sm text-gray-500">
+            Bekijk je geboekte ritten en volg realtime de actuele status van de centrale.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="self-start sm:self-auto px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-[#001331] hover:bg-gray-50 transition cursor-pointer shadow-sm"
+        >
+          Vernieuwen
+        </button>
+      </div>
+
+      {/* Status Filter Tabs (Alle, Nieuw, Toegewezen, Onderweg, Voltooid, Geannuleerd) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {filterTabs.map((tab) => {
+          const isActive = statusFilter === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id as any)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                isActive
+                  ? 'bg-[#001331] text-[#FFB800] shadow-sm'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                isActive ? 'bg-[#FFB800] text-[#001331] font-black' : 'bg-gray-100 text-gray-500 font-semibold'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Rides List */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+        {ridesLoading ? (
+          <div className="py-14 text-center text-sm text-gray-400">
+            <div className="w-6 h-6 border-2 border-[#001331]/20 border-t-[#001331] rounded-full animate-spin mx-auto mb-2" />
+            Ritten laden...
+          </div>
+        ) : filteredRides.length === 0 ? (
+          <div className="py-14 text-center text-sm text-gray-400 px-4">
+            <Car className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+            <p className="font-bold text-gray-700">Geen ritten gevonden in deze categorie</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Er zijn momenteel geen ritten met de status "{filterTabs.find(t => t.id === statusFilter)?.label}".
+            </p>
+          </div>
+        ) : (
+          filteredRides.map((ride, idx) => (
+            <div key={idx} className="p-5 hover:bg-gray-50/70 transition space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                    {ride.id}
+                  </span>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">📅 {ride.date}</span>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">🕒 {ride.time} uur</span>
+                </div>
+                {getStatusBadge(ride.rawStatus, ride.status)}
+              </div>
+
+              {/* Route */}
+              <div className="space-y-1.5 bg-gray-50/80 p-3.5 rounded-xl border border-gray-100">
+                <div className="flex items-start gap-2.5 text-xs sm:text-sm font-bold text-[#07152B]">
+                  <MapPin className="w-4 h-4 text-[#001331] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-medium">Ophaallocatie</span>
+                    <span>{ride.from}</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs sm:text-sm font-bold text-[#07152B] pt-1.5 border-t border-gray-200/60">
+                  <MapPin className="w-4 h-4 text-[#FFB800] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-medium">Bestemming</span>
+                    <span>{ride.to}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Driver & Price Footer */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
+                <div>
+                  {ride.driverName ? (
+                    <span className="font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-blue-700" />
+                      Chauffeur: {ride.driverName}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic">
+                      {ride.rawStatus === 'voltooid' ? 'Rit voltooid' : 'Chauffeur wordt ingepland door centrale'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 font-black text-sm text-[#001331]">
+                  <span>Tarief:</span>
+                  <span className="text-[#00255c] text-base">{ride.price}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── RESERVERING SECTION ─────────────────────────────────
+function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCreated?: () => void }) {
+  const { t } = useLanguage();
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [passengers, setPassengers] = useState('1');
+  const [notes, setNotes] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!from.trim() || !to.trim() || !date || !time) {
+      setError('Vul a.u.b. alle verplichte velden in.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await supabaseDataService.createOrder({
+        customerName: user.name,
+        customerEmail: user.email,
+        customerPhone: user.phone || '',
+        customerNotes: notes.trim() || undefined,
+        pickupAddress: from.trim(),
+        destinationAddress: to.trim(),
+        pickupDate: date,
+        pickupTime: time,
+        passengers: Number(passengers),
+        estimatedKm: 0,
+        vehicleType: 'klein',
+        hasLuggage: false,
+        kmRate: 2.39,
+        totalFare: 0,
+        paymentMethod: 'cash',
+      });
+      setSubmitted(true);
+      onRideCreated?.();
+    } catch (err: any) {
+      setError(err.message || 'Er is iets misgegaan. Probeer het opnieuw.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[380px] text-center px-6 space-y-5">
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #001331 0%, #00255c 100%)' }}
+        >
+          <CheckCircle2 className="w-10 h-10 text-[#FFB800]" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-[#001331]">{t('client.rideSent')}</h2>
+          <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">
+            {t('client.rideSentSub')}
+          </p>
+        </div>
+        <button
+          onClick={() => { setSubmitted(false); setFrom(''); setTo(''); setDate(''); setTime(''); setNotes(''); setPassengers('1'); }}
+          className="px-6 py-3 rounded-xl font-extrabold text-sm text-[#001331] shadow hover:opacity-90 transition cursor-pointer"
+          style={{ background: '#FFB800' }}
+        >
+          {t('client.requestRide')}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div
+        className="rounded-2xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #001331 0%, #00255c 100%)' }}
+      >
+        <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #FFB800, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-11 h-11 rounded-xl bg-[#FFB800] flex items-center justify-center shrink-0">
+            <MapPin className="w-6 h-6 text-[#001331]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black">{t('client.whereTo')}</h2>
+            <p className="text-xs text-white/70 mt-0.5">{t('client.whereToSub')}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {/* Ophaaladres */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">
+            <span className="text-red-500">*</span> {t('client.pickupLocation')}
+          </label>
+          <div className="flex items-center gap-2 px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl focus-within:border-[#00255c] focus-within:ring-2 focus-within:ring-[#00255c]/10 transition">
+            <MapPin className="w-4 h-4 text-[#001331] shrink-0" />
+            <input
+              type="text"
+              required
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="Bijv. Schiphol Airport, Amsterdam"
+              className="w-full bg-transparent text-sm text-[#07152B] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Bestemming */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">
+            <span className="text-red-500">*</span> {t('client.destination')}
+          </label>
+          <div className="flex items-center gap-2 px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl focus-within:border-[#00255c] focus-within:ring-2 focus-within:ring-[#00255c]/10 transition">
+            <MapPin className="w-4 h-4 text-[#FFB800] shrink-0" />
+            <input
+              type="text"
+              required
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="Bijv. Rotterdam Centraal"
+              className="w-full bg-transparent text-sm text-[#07152B] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Datum & Tijd */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              <span className="text-red-500">*</span> {t('client.date')}
+            </label>
+            <input
+              type="date"
+              required
+              value={date}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl text-sm text-[#07152B] focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 transition"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              <span className="text-red-500">*</span> {t('client.time')}
+            </label>
+            <input
+              type="time"
+              required
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl text-sm text-[#07152B] focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 transition"
+            />
+          </div>
+        </div>
+
+        {/* Passagiers */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('client.passengers')}</label>
+          <select
+            value={passengers}
+            onChange={(e) => setPassengers(e.target.value)}
+            className="w-full px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl text-sm text-[#07152B] focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 transition"
+          >
+            {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} passagier{n > 1 ? 's' : ''}</option>)}
+          </select>
+        </div>
+
+        {/* Opmerkingen */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('client.notes')}</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Bijv. rolstoel nodig, bagage meenemen, vluchtnummer..."
+            className="w-full px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl text-sm text-[#07152B] focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 transition resize-none"
+          />
+        </div>
+
+        {/* Klant info (readonly) */}
+        <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 space-y-1">
+          <p className="font-bold text-[#001331]">Uw gegevens worden automatisch meegestuurd:</p>
+          <p>👤 {user.name} · 📧 {user.email}{user.phone ? ` · 📞 ${user.phone}` : ''}</p>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 px-6 rounded-xl font-extrabold text-sm text-[#001331] shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+          style={{ background: 'linear-gradient(135deg, #FFB800 0%, #e6a500 100%)' }}
+        >
+          {loading ? (
+            <><div className="w-4 h-4 border-2 border-[#001331]/30 border-t-[#001331] rounded-full animate-spin" /> {t('common.sending')}</>
+          ) : (
+            <><Send className="w-4 h-4" /> {t('client.requestRide')}</>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ─── MAIN DASHBOARD ─────────────────────────────────────
+function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading, unreadNotifications, onRideCreated }: {
   user: AuthUser;
   onNavigate: (s: DashSection) => void;
   onContact?: () => void;
   recentRides: RecentRide[];
   ridesLoading: boolean;
   unreadNotifications?: ClientNotification[];
+  onRideCreated?: () => void;
 }) {
+  const { t } = useLanguage();
+  const [mainStatusFilter, setMainStatusFilter] = useState<'all' | 'nieuw' | 'toegewezen' | 'onderweg' | 'voltooid' | 'geannuleerd'>('all');
+
+  const menuCards: {
+    id: DashSection;
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    span?: boolean;
+  }[] = [
+    { id: 'reservering',     icon: <MapPin className="w-5 h-5" />,      title: t('client.whereTo'),          sub: t('client.whereToSub'), span: true },
+    { id: 'ritten',          icon: <Car className="w-5 h-5" />,        title: t('client.myRides'),          sub: t('client.viewAllRides') },
+    { id: 'accountgegevens', icon: <User className="w-5 h-5" />,       title: t('client.accountDetails'),   sub: t('client.accountDetails') },
+    { id: 'beveiliging',     icon: <Shield className="w-5 h-5" />,     title: t('client.loginSecurity'),    sub: t('client.loginSecurity') },
+    { id: 'betaalmethoden',  icon: <CreditCard className="w-5 h-5" />, title: t('client.paymentMethods'),   sub: t('client.paymentMethods') },
+    { id: 'klantenservice',  icon: <Headphones className="w-5 h-5" />, title: t('client.customerService'),   sub: t('client.customerService'), span: true },
+  ];
+
+  // Quick booking state
+  const [quickFrom, setQuickFrom] = useState('');
+  const [quickTo, setQuickTo] = useState('');
+  const [quickDate, setQuickDate] = useState('');
+  const [quickTime, setQuickTime] = useState('');
+  const [quickLoading, setQuickLoading] = useState(false);
+  const [quickSuccess, setQuickSuccess] = useState(false);
+  const [quickError, setQuickError] = useState('');
+
+  const handleQuickSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQuickError('');
+    if (!quickFrom.trim() || !quickTo.trim()) {
+      setQuickError('Vul a.u.b. ophaallocatie en bestemming in.');
+      return;
+    }
+    setQuickLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const nowTime = new Date().toTimeString().slice(0, 5);
+      await supabaseDataService.createOrder({
+        customerName: user.name,
+        customerEmail: user.email,
+        customerPhone: user.phone || '',
+        pickupAddress: quickFrom.trim(),
+        destinationAddress: quickTo.trim(),
+        pickupDate: quickDate || today,
+        pickupTime: quickTime || nowTime,
+        passengers: 1,
+        estimatedKm: 0,
+        vehicleType: 'klein',
+        hasLuggage: false,
+        kmRate: 2.39,
+        totalFare: 0,
+        paymentMethod: 'cash',
+      });
+      setQuickSuccess(true);
+      setQuickFrom('');
+      setQuickTo('');
+      setQuickDate('');
+      setQuickTime('');
+      onRideCreated?.();
+      setTimeout(() => setQuickSuccess(false), 6000);
+    } catch (err: any) {
+      setQuickError(err.message || 'Kon rit niet aanvragen. Probeer opnieuw.');
+    } finally {
+      setQuickLoading(false);
+    }
+  };
+
+  const filteredRecentRides = recentRides.filter((r) => {
+    if (mainStatusFilter === 'all') return true;
+    if (mainStatusFilter === 'nieuw') return r.rawStatus === 'nieuw' || r.rawStatus === 'bevestigd';
+    return r.rawStatus === mainStatusFilter;
+  });
   return (
     <div className="space-y-6">
 
@@ -1203,9 +1630,122 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
         ))}
       </div>
 
+      {/* ── "Waar wil je heen?" Quick Action & Booking Card ── */}
+      <div className="bg-gradient-to-br from-[#001331] via-[#001d4a] to-[#00255c] rounded-3xl p-5 sm:p-6 text-white border border-[#FFB800]/30 shadow-xl relative overflow-hidden">
+        {/* Ambient Glow */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#FFB800]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFB800] text-[#001331] flex items-center justify-center font-black shadow-lg shadow-[#FFB800]/30 shrink-0">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-black text-[#FFB800] uppercase tracking-wider block">
+                Direct rit aanvragen
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                Waar wil je heen?
+              </h3>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('reservering')}
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FFB800] text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+          >
+            <span>Uitgebreid formulier</span>
+            <ArrowRight className="w-4 h-4 text-[#FFB800]" />
+          </button>
+        </div>
+
+        {/* Success Alert */}
+        {quickSuccess && (
+          <div className="mb-4 p-3.5 bg-emerald-500/20 border border-emerald-400/50 rounded-2xl flex items-center gap-2.5 text-xs sm:text-sm text-emerald-200">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>Ritaanvraag succesvol verzonden! De centrale heeft uw rit ontvangen en neemt spoedig contact op.</span>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {quickError && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-400/50 rounded-2xl flex items-center gap-2 text-xs text-red-200">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{quickError}</span>
+          </div>
+        )}
+
+        {/* Quick Booking Form */}
+        <form onSubmit={handleQuickSubmit} className="space-y-3 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="flex items-center gap-2.5 px-3.5 py-3 bg-white/10 border border-white/15 rounded-xl focus-within:border-[#FFB800] focus-within:bg-white/15 transition backdrop-blur-sm">
+              <MapPin className="w-4 h-4 text-[#FFB800] shrink-0" />
+              <input
+                type="text"
+                required
+                value={quickFrom}
+                onChange={(e) => setQuickFrom(e.target.value)}
+                placeholder="Ophaallocatie (bijv. Amsterdam Centraal)"
+                className="w-full bg-transparent text-sm text-white placeholder-white/50 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5 px-3.5 py-3 bg-white/10 border border-white/15 rounded-xl focus-within:border-[#FFB800] focus-within:bg-white/15 transition backdrop-blur-sm">
+              <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+              <input
+                type="text"
+                required
+                value={quickTo}
+                onChange={(e) => setQuickTo(e.target.value)}
+                placeholder="Bestemming (bijv. Schiphol Airport)"
+                className="w-full bg-transparent text-sm text-white placeholder-white/50 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <input
+                type="date"
+                value={quickDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setQuickDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white/10 border border-white/15 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#FFB800] transition"
+              />
+            </div>
+            <div>
+              <input
+                type="time"
+                value={quickTime}
+                onChange={(e) => setQuickTime(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white/10 border border-white/15 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#FFB800] transition"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={quickLoading}
+              className="py-2.5 px-4 rounded-xl bg-[#FFB800] hover:bg-[#FFA500] text-[#001331] font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {quickLoading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-[#001331]/30 border-t-[#001331] rounded-full animate-spin" />
+                  <span>Versturen...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Rit aanvragen</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
       {/* ── Menu Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {MENU_CARDS.map(({ id, icon, title, sub, span }) => (
+        {menuCards.map(({ id, icon, title, sub, span }) => (
           <div
             key={id}
             onClick={() => {
@@ -1244,9 +1784,42 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
             <Clock className="w-4 h-4" style={{ color: NAVY2 }} />
             <h5 className="font-bold text-sm text-[#07152B]">Recente ritten</h5>
           </div>
-          <button className="text-xs font-bold hover:underline flex items-center gap-1 cursor-pointer transition" style={{ color: NAVY2 }}>
-            Bekijk alle ritten <ArrowRight className="w-3 h-3" />
+          <button
+            type="button"
+            onClick={() => onNavigate('ritten')}
+            className="text-xs font-bold hover:underline flex items-center gap-1 cursor-pointer transition"
+            style={{ color: NAVY2 }}
+          >
+            Bekijk alle ritten ({recentRides.length}) <ArrowRight className="w-3 h-3" />
           </button>
+        </div>
+
+        {/* Status Filter Tabs (Alle, Nieuw, Toegewezen, Onderweg, Voltooid, Geannuleerd) */}
+        <div className="p-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto">
+          {[
+            { id: 'all', label: 'Alle' },
+            { id: 'nieuw', label: 'Nieuw' },
+            { id: 'toegewezen', label: 'Toegewezen' },
+            { id: 'onderweg', label: 'Onderweg' },
+            { id: 'voltooid', label: 'Voltooid' },
+            { id: 'geannuleerd', label: 'Geannuleerd' },
+          ].map((tab) => {
+            const isActive = mainStatusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setMainStatusFilter(tab.id as any)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#001331] text-[#FFB800] shadow-sm'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Rides list */}
@@ -1256,15 +1829,15 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
               <div className="w-6 h-6 border-2 border-[#001331]/20 border-t-[#001331] rounded-full animate-spin mx-auto mb-2" />
               Ritten laden...
             </div>
-          ) : recentRides.length === 0 ? (
+          ) : filteredRecentRides.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-400">
               <Car className="w-10 h-10 mx-auto mb-3 text-gray-200" />
               <p className="font-semibold text-gray-500">Geen ritten gevonden</p>
-              <p className="text-xs mt-1">Je hebt nog geen ritten geboekt via je account.</p>
+              <p className="text-xs mt-1">Geen ritten in deze statuscategorie.</p>
             </div>
           ) : (
-            recentRides.map((ride, i) => (
-              <div key={i} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            filteredRecentRides.map((ride, i) => (
+              <div key={i} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-gray-50/60 transition">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#07152B] flex-wrap">
                     <MapPin className="w-3.5 h-3.5 text-[#001331] shrink-0" />
@@ -1273,16 +1846,19 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
                     <MapPin className="w-3.5 h-3.5 text-[#FFB800] shrink-0" />
                     <span>{ride.to}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500 flex-wrap">
+                    <span className="font-mono text-[10px] font-bold text-gray-400">{ride.id}</span>
                     <span>📅 {ride.date}</span>
                     <span>🕒 {ride.time}</span>
+                    {ride.driverName && (
+                      <span className="text-blue-900 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        Chauffeur: {ride.driverName}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="px-2.5 py-1 bg-green-50 text-green-700 font-bold rounded-full text-[11px] flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {ride.status}
-                  </span>
+                  {getStatusBadge(ride.rawStatus, ride.status)}
                   <span className="font-extrabold text-[#07152B]">{ride.price}</span>
                 </div>
               </div>
@@ -1298,19 +1874,25 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
 //  MAIN COMPONENT
 // ══════════════════════════════════════════════════════════
 export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpenAccount, onNavigateToContact }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    try {
-      const s = localStorage.getItem('taximooo_user');
-      return s ? JSON.parse(s) : null;
-    } catch {
-      return null;
-    }
-  });
+  const { language, setLanguage, t } = useLanguage();
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(() => getValidClientUser());
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const [activeSection, setActiveSection] = useState<DashSection>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [recentRides, setRecentRides] = useState<{ from: string; to: string; date: string; time: string; status: string; price: string }[]>([]);
+  const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
   const [ridesLoading, setRidesLoading] = useState(false);
+
+  const navItems: { id: DashSection; label: string; icon: React.ReactNode }[] = [
+    { id: 'dashboard',      label: t('client.dashboard'),        icon: <Home className="w-4 h-4" /> },
+    { id: 'reservering',    label: t('client.whereTo'),          icon: <MapPin className="w-4 h-4" /> },
+    { id: 'ritten',         label: t('client.myRides'),          icon: <Car className="w-4 h-4" /> },
+    { id: 'accountgegevens',label: t('client.accountDetails'),   icon: <User className="w-4 h-4" /> },
+    { id: 'beveiliging',   label: t('client.loginSecurity'),    icon: <Shield className="w-4 h-4" /> },
+    { id: 'betaalmethoden', label: t('client.paymentMethods'),   icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'klantenservice',label: t('client.customerService'),   icon: <Headphones className="w-4 h-4" /> },
+  ];
 
   // ─── NOTIFICATIONS STATE ──────────────────────────────────
   const [notifications, setNotifications] = useState<ClientNotification[]>([]);
@@ -1370,19 +1952,176 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
       console.warn('Could not load pricing settings for notifications:', err);
     }
 
+    // 3. Order status updates from administration
+    try {
+      let ordersList: any[] = [];
+      if (supabaseDataService.isLive()) {
+        ordersList = await supabaseDataService.getOrdersByEmail(userEmail);
+      }
+      const localOrders = adminBookingService.getOrders().filter(
+        (o) => o.customerEmail?.toLowerCase() === userEmail.toLowerCase()
+      );
+      localOrders.forEach((loc) => {
+        if (!ordersList.some((r) => r.order_number === loc.id || r.id === loc.id)) {
+          ordersList.push({
+            id: loc.id,
+            order_number: loc.id,
+            status: loc.status,
+            pickup_address: loc.pickup,
+            destination_address: loc.destination,
+            updated_at: new Date().toISOString(),
+          });
+        }
+      });
+
+      ordersList.forEach((ord) => {
+        const raw = (ord.status || '').toLowerCase();
+        const num = ord.order_number || ord.id;
+        if (raw && raw !== 'nieuw') {
+          let title = '';
+          let message = '';
+          let badge = '';
+
+          if (raw === 'toegewezen') {
+            title = `Rit ${num} Toegewezen 🚗`;
+            message = `De centrale heeft je rit toegewezen aan een chauffeur.`;
+            badge = 'Toegewezen';
+          } else if (raw === 'onderweg') {
+            title = `Taxi Onderweg 🚖`;
+            message = `Je taxi is nu onderweg naar ${ord.pickup_address || 'je ophaallocatie'}!`;
+            badge = 'Onderweg';
+          } else if (raw === 'voltooid') {
+            title = `Rit ${num} Voltooid ✅`;
+            message = `Je rit naar ${ord.destination_address || 'je bestemming'} is voltooid. Bedankt voor het reizen!`;
+            badge = 'Voltooid';
+          } else if (raw === 'geannuleerd') {
+            title = `Rit ${num} Geannuleerd ❌`;
+            message = `Rit ${num} is geannuleerd door de centrale.`;
+            badge = 'Geannuleerd';
+          }
+
+          if (title) {
+            const notifId = `order-${num}-${raw}`;
+            list.push({
+              id: notifId,
+              type: 'order_update',
+              title,
+              message,
+              time: ord.updated_at || ord.created_at || new Date().toISOString(),
+              isRead: readNotificationIds.includes(notifId),
+              linkSection: 'ritten',
+              badge,
+            });
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('Could not load orders for notifications:', err);
+    }
+
     list.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
     setNotifications(list);
   }, [readNotificationIds]);
 
+  // Load rides from Supabase and LocalStorage based on customer email
+  const loadRides = useCallback(async (email: string) => {
+    setRidesLoading(true);
+    try {
+      let allOrders: any[] = [];
+      if (supabaseDataService.isLive()) {
+        try {
+          allOrders = await supabaseDataService.getOrdersByEmail(email);
+        } catch (e) {
+          console.warn('Error fetching remote orders for client:', e);
+        }
+      }
+
+      // Merge local storage orders if any
+      const localOrders = adminBookingService.getOrders().filter(
+        (o) => o.customerEmail?.toLowerCase() === email.toLowerCase()
+      );
+      localOrders.forEach((loc) => {
+        const exists = allOrders.some(
+          (r) => r.order_number === loc.id || r.id === loc.id
+        );
+        if (!exists) {
+          allOrders.push({
+            id: loc.id,
+            order_number: loc.id,
+            pickup_address: loc.pickup,
+            destination_address: loc.destination,
+            pickup_date: loc.pickupDate,
+            pickup_time: loc.pickupTime,
+            status: loc.status,
+            total_fare: loc.totalFare,
+            vehicle_type: loc.vehicleType,
+            assigned_driver: loc.assignedDriver,
+          });
+        }
+      });
+
+      const statusMap: Record<string, string> = {
+        nieuw: 'Nieuw',
+        bevestigd: 'Bevestigd',
+        toegewezen: 'Toegewezen',
+        onderweg: 'Onderweg',
+        voltooid: 'Voltooid',
+        geannuleerd: 'Geannuleerd',
+      };
+
+      const mapped: RecentRide[] = allOrders.map((o: any) => {
+        const bo = o.pickup ? o : mapSupabaseOrderToBookingOrder(o);
+        const d = new Date(bo.pickupDate || o.pickup_date);
+        const dateStr = !isNaN(d.getTime())
+          ? `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`
+          : (bo.pickupDate || o.pickup_date || '');
+        const rawStatus = (bo.status || o.status || 'nieuw').toLowerCase();
+
+        return {
+          id: bo.id || o.order_number || o.id,
+          rawStatus,
+          from: bo.pickup || o.pickup_address,
+          to: bo.destination || o.destination_address,
+          date: dateStr,
+          time: bo.pickupTime || o.pickup_time,
+          status: statusMap[rawStatus] || rawStatus,
+          price: `€ ${Number(bo.totalFare || o.total_fare || 0).toFixed(2)}`,
+          driverName: bo.assignedDriver?.name || o.assigned_driver?.full_name || undefined,
+          vehicleType: bo.vehicleType || o.vehicle_type,
+        };
+      });
+
+      setRecentRides(mapped);
+    } catch (err) {
+      console.error('Error loading rides:', err);
+    } finally {
+      setRidesLoading(false);
+    }
+  }, []);
+
+  // Real-time polling & focus listener
   useEffect(() => {
     if (user?.email) {
+      loadRides(user.email);
       loadNotifications(user.email);
+
       const timer = setInterval(() => {
+        loadRides(user.email);
         loadNotifications(user.email);
-      }, 10000);
-      return () => clearInterval(timer);
+      }, 6000);
+
+      const handleFocus = () => {
+        loadRides(user.email);
+        loadNotifications(user.email);
+      };
+      window.addEventListener('focus', handleFocus);
+
+      return () => {
+        clearInterval(timer);
+        window.removeEventListener('focus', handleFocus);
+      };
     }
-  }, [user?.email, loadNotifications]);
+  }, [user?.email, loadRides, loadNotifications]);
 
   const markAllNotificationsAsRead = () => {
     const allIds = notifications.map((n) => n.id);
@@ -1410,41 +2149,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const unreadCount = unreadNotifications.length;
 
-  // Load rides from Supabase based on customer email
-  const loadRides = useCallback(async (email: string) => {
-    if (!supabaseDataService.isLive()) return;
-    setRidesLoading(true);
-    try {
-      const orders = await supabaseDataService.getOrdersByEmail(email);
-      const mapped = (orders || []).map((o: any) => {
-        const bo = mapSupabaseOrderToBookingOrder(o);
-        const d = new Date(bo.pickupDate);
-        const dateStr = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
-        const statusMap: Record<string, string> = {
-          nieuw: 'Nieuw', bevestigd: 'Bevestigd', toegewezen: 'Toegewezen',
-          onderweg: 'Onderweg', voltooid: 'Voltooid', geannuleerd: 'Geannuleerd',
-        };
-        return {
-          from: bo.pickup,
-          to: bo.destination,
-          date: dateStr,
-          time: bo.pickupTime,
-          status: statusMap[bo.status] || bo.status,
-          price: `€ ${bo.totalFare.toFixed(2)}`,
-        };
-      });
-      setRecentRides(mapped);
-    } catch (err) {
-      console.error('Error loading rides:', err);
-    } finally {
-      setRidesLoading(false);
-    }
-  }, []);
-
-  // Sync user to localStorage
+  // Sync user to localStorage via session security
   useEffect(() => {
-    if (user) localStorage.setItem('taximooo_user', JSON.stringify(user));
-    else localStorage.removeItem('taximooo_user');
+    if (user) setClientSession(user);
+    else clearClientSession();
   }, [user]);
 
   // Load rides when user is set
@@ -1452,19 +2160,59 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
     if (user?.email) loadRides(user.email);
   }, [user?.email, loadRides]);
 
+  // Session activity tracker — expires after inactivity
+  useEffect(() => {
+    if (!user) return;
+    const cleanup = initClientActivityTracker(() => {
+      setUser(null);
+      clearClientSession();
+      setSessionExpired(true);
+    });
+    return cleanup;
+  }, [user?.email]);
+
   // If not logged in, open account modal and exit dashboard
   useEffect(() => {
-    if (!user) {
+    if (!user && !sessionExpired) {
       onOpenAccount();
       onExit();
     }
   }, []);
 
+  // Session expired screen
+  if (sessionExpired) {
+    return (
+      <div className="min-h-screen bg-[#000E24] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#00255c]/40 rounded-full blur-[120px] pointer-events-none" />
+        <div className="relative w-full max-w-sm bg-white rounded-3xl p-8 sm:p-10 shadow-2xl text-center space-y-6 z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#001331] rounded-2xl mx-auto">
+            <Lock className="w-8 h-8 text-[#FFB800]" />
+          </div>
+          <div className="inline-block">
+            <Logo size="md" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[#001331]">{t('client.sessionExpired')}</h2>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              {t('client.sessionExpiredSub')}
+            </p>
+          </div>
+          <button
+            onClick={() => { setSessionExpired(false); onOpenAccount(); onExit(); }}
+            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#001331] via-[#001d4a] to-[#00255c] text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all cursor-pointer"
+          >
+            {t('client.relogin')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('taximooo_user');
+    clearClientSession();
     onExit();
   };
 
@@ -1489,6 +2237,28 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
             recentRides={recentRides}
             ridesLoading={ridesLoading}
             unreadNotifications={unreadNotifications}
+            onRideCreated={() => {
+              if (user?.email) loadRides(user.email);
+            }}
+          />
+        );
+      case 'ritten':
+        return (
+          <RittenSection
+            rides={recentRides}
+            ridesLoading={ridesLoading}
+            onRefresh={() => {
+              if (user?.email) loadRides(user.email);
+            }}
+          />
+        );
+      case 'reservering':
+        return (
+          <ReserveringSection
+            user={user}
+            onRideCreated={() => {
+              if (user?.email) loadRides(user.email);
+            }}
           />
         );
       case 'accountgegevens':
@@ -1508,12 +2278,15 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
             recentRides={recentRides}
             ridesLoading={ridesLoading}
             unreadNotifications={unreadNotifications}
+            onRideCreated={() => {
+              if (user?.email) loadRides(user.email);
+            }}
           />
         );
     }
   };
 
-  const activeLabel = NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? 'Dashboard';
+  const activeLabel = navItems.find((n) => n.id === activeSection)?.label ?? t('client.dashboard');
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F4F7FB]">
@@ -1550,8 +2323,42 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
             )}
           </div>
 
-          {/* Right: Bell + User chip */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: Language + Bell + User chip */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition cursor-pointer border border-white/15"
+                title="Change Language"
+              >
+                <Globe className="w-3.5 h-3.5 text-[#FFB800]" />
+                <span>{language === 'nl' ? '🇳🇱 NL' : '🇬🇧 EN'}</span>
+              </button>
+              {langDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setLangDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-36 bg-[#001331] border border-white/15 rounded-2xl shadow-2xl py-1 z-50 text-xs font-bold backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={() => { setLanguage('nl'); setLangDropdownOpen(false); }}
+                      className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'nl' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    >
+                      <span>🇳🇱 Nederlands</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLanguage('en'); setLangDropdownOpen(false); }}
+                      className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'en' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    >
+                      <span>🇬🇧 English</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Notification bell & Dropdown */}
             <div className="relative">
               <button
@@ -1693,7 +2500,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
           >
             {/* Nav links */}
             <nav className="flex-1 space-y-1">
-              {NAV_ITEMS.map(({ id, label, icon }) => {
+              {navItems.map(({ id, label, icon }) => {
                 const isActive = activeSection === id;
                 return (
                   <button
@@ -1720,7 +2527,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/8 transition cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-white/50" />
-                Uitloggen
+                {t('admin.logout')}
               </button>
             </div>
 
@@ -1764,7 +2571,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
 
               {/* Nav */}
               <nav className="flex-1 space-y-1">
-                {NAV_ITEMS.map(({ id, label, icon }) => {
+                {navItems.map(({ id, label, icon }) => {
                   const isActive = activeSection === id;
                   return (
                     <button
@@ -1789,7 +2596,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/8 transition cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-white/50" />
-                  Uitloggen
+                  {t('admin.logout')}
                 </button>
               </div>
             </aside>

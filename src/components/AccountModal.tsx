@@ -5,6 +5,7 @@ import {
   AlertCircle, Check, ChevronRight, UserPlus, LogIn, LayoutDashboard
 } from 'lucide-react';
 import { supabaseDataService } from '../services/supabaseDataService';
+import { setClientSession, clearClientSession } from '../services/sessionSecurity';
 
 // ─── Brand tokens (Main website palette) ──────────────────
 const NAVY   = '#001331';
@@ -58,8 +59,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) localStorage.setItem('taximooo_user', JSON.stringify(user));
-    else localStorage.removeItem('taximooo_user');
+    if (user) setClientSession(user);
+    else clearClientSession();
   }, [user]);
 
   // Lock body scroll when modal is open
@@ -93,7 +94,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
     try {
       const loggedUser = await supabaseDataService.loginClient(loginEmail, loginPassword);
       setUser(loggedUser);
-      localStorage.setItem('taximooo_user', JSON.stringify(loggedUser));
+      setClientSession(loggedUser);
       setSuccessMessage('Succesvol ingelogd!');
       setTimeout(() => {
         onClose();
@@ -134,7 +135,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
         regPassword
       );
       setUser(newUser);
-      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
+      setClientSession(newUser);
       setSuccessMessage('Account succesvol aangemaakt! Welkom bij Taxi mooo.');
       setTimeout(() => {
         onClose();
@@ -162,7 +163,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
         rating: 5.0,
       };
       setUser(newUser);
-      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
+      setClientSession(newUser);
       setSuccessMessage('Succesvol ingelogd via Google!');
       setTimeout(() => { onClose(); onLoginSuccess?.(); }, 700);
     }, 700);
@@ -170,7 +171,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('taximooo_user');
+    clearClientSession();
     setAuthMode('login');
     setSuccessMessage('');
   };

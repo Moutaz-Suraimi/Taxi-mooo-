@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, HelpCircle, ArrowRight, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FaqPreviewSectionProps {
   onNavigateToFaq: () => void;
@@ -10,9 +11,31 @@ export const FaqPreviewSection: React.FC<FaqPreviewSectionProps> = ({
   onNavigateToFaq,
   onOpenContact,
 }) => {
+  const { t, language } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-  const previewFaqs = [
+  const previewFaqs = language === 'en' ? [
+    {
+      question: 'How is my taxi fare calculated in advance?',
+      answer:
+        'At Taxi mooo, your fare is calculated in advance based on your pickup address, destination, and vehicle type. This is a guaranteed fixed price including VAT, tolls, and luggage. You never pay extra during traffic delays or diversions.',
+    },
+    {
+      question: 'Can I change or cancel my booking for free?',
+      answer:
+        'Yes, cancelling or changing the pickup time is completely free of charge up to 2 hours before the scheduled pickup time via phone, WhatsApp, or directly in your account dashboard.',
+    },
+    {
+      question: 'How does pickup at Schiphol Airport work?',
+      answer:
+        'Our dispatch center tracks your flight number in real time. Once you land, you get 45 minutes of free waiting time to pass customs and retrieve your luggage. Your driver will meet you at the agreed meeting point.',
+    },
+    {
+      question: 'Which payment methods are accepted?',
+      answer:
+        'You can pay in cash to the driver, or soon online via iDEAL, debit card (PIN), or credit card. Business invoicing is also available for corporate accounts.',
+    },
+  ] : [
     {
       question: 'Hoe wordt mijn ritprijs vooraf berekend?',
       answer:
@@ -47,16 +70,15 @@ export const FaqPreviewSection: React.FC<FaqPreviewSectionProps> = ({
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2">
               <span className="px-3.5 py-1.5 rounded-full bg-[#EBF2FC] text-[#0B2559] text-xs font-extrabold uppercase tracking-wider">
-                Veelgestelde Vragen
+                {t('faq.badge')}
               </span>
               <span className="h-1 w-8 bg-[#FFB800] rounded-full"></span>
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-[#07152B] leading-tight">
-              Alles wat je vooraf wilt weten
+              {t('faq.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Heb je een vraag over het boeken, tarieven of onze Schiphol transfers? Hieronder vind je
-              de meest gestelde vragen.
+              {t('faq.sub')}
             </p>
           </div>
 
@@ -65,7 +87,7 @@ export const FaqPreviewSection: React.FC<FaqPreviewSectionProps> = ({
               onClick={onNavigateToFaq}
               className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#0B2559] hover:bg-[#001331] text-white font-bold text-sm transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>Bekijk alle 18 vragen</span>
+              <span>{t('faq.viewAll')}</span>
               <ArrowRight className="w-4 h-4 text-[#FFB800]" />
             </button>
           </div>
@@ -124,23 +146,17 @@ export const FaqPreviewSection: React.FC<FaqPreviewSectionProps> = ({
         <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <HelpCircle className="w-5 h-5 text-[#0B2559] shrink-0" />
-            <span>Staat jouw vraag er niet tussen? Neem direct contact op met onze centrale.</span>
+            <span>{t('faq.contactPrompt')}</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={onNavigateToFaq}
-              className="text-sm font-bold text-[#0B2559] hover:text-[#001331] underline underline-offset-4 cursor-pointer"
-            >
-              Ga naar de FAQ pagina
-            </button>
             {onOpenContact && (
               <button
                 onClick={onOpenContact}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 font-bold text-xs border border-green-200 transition cursor-pointer"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>Stel een vraag</span>
+                <span>{t('faq.contactBtn')}</span>
               </button>
             )}
           </div>

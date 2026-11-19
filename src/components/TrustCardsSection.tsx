@@ -1,14 +1,15 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export const TrustCardsSection: React.FC = () => {
+  const { t } = useLanguage();
   return (
     <section className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 my-10 sm:my-14">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Scherpe tarieven */}
         <div className="bg-white rounded-[22px] p-7 sm:p-8 border border-blue-100/70 shadow-[0_10px_35px_rgba(0,34,84,0.05)] hover:shadow-[0_15px_45px_rgba(0,34,84,0.09)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
           <div>
-            {/* Discount / Percentage badge icon in light blue rounded square */}
             <div className="w-12 h-12 rounded-2xl bg-[#EBF2FC] flex items-center justify-center text-[#0B2559] mb-5">
               <svg
                 className="w-6 h-6 text-[#0B2559]"
@@ -19,12 +20,10 @@ export const TrustCardsSection: React.FC = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                {/* Percentage circle */}
                 <circle cx="12" cy="8" r="5" stroke="#0B2559" strokeWidth="2" />
                 <line x1="10" y1="10" x2="14" y2="6" stroke="#0B2559" strokeWidth="1.5" />
                 <circle cx="10" cy="7" r="0.8" fill="#0B2559" />
                 <circle cx="14" cy="9" r="0.8" fill="#0B2559" />
-                {/* Hand outline underneath */}
                 <path
                   d="M 5 18 C 7 15 11 15 14 17 C 16 18 19 18 20 17"
                   stroke="#0B2559"
@@ -39,11 +38,11 @@ export const TrustCardsSection: React.FC = () => {
             </div>
 
             <h3 className="text-xl font-bold text-[#07152B] mb-2.5 tracking-tight">
-              Scherpe tarieven
+              {t('trust.sharpRatesTitle')}
             </h3>
 
             <p className="text-[15px] text-gray-500 leading-relaxed font-normal">
-              Tot 70% goedkoper dan de meterprijs. Vaste tarieven en geen verrassingen achteraf.
+              {t('trust.sharpRatesDesc')}
             </p>
           </div>
         </div>
@@ -51,7 +50,6 @@ export const TrustCardsSection: React.FC = () => {
         {/* Card 2: Overal in Nederland */}
         <div className="bg-white rounded-[22px] p-7 sm:p-8 border border-blue-100/70 shadow-[0_10px_35px_rgba(0,34,84,0.05)] hover:shadow-[0_15px_45px_rgba(0,34,84,0.09)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
           <div>
-            {/* Netherlands map silhouette in light blue rounded square */}
             <div className="w-12 h-12 rounded-2xl bg-[#EBF2FC] flex items-center justify-center text-[#0B2559] mb-5">
               <svg
                 className="w-6 h-6 text-[#0B2559] fill-[#0B2559]"
@@ -66,29 +64,28 @@ export const TrustCardsSection: React.FC = () => {
             </div>
 
             <h3 className="text-xl font-bold text-[#07152B] mb-2.5 tracking-tight">
-              Overal in Nederland
+              {t('trust.nationwideTitle')}
             </h3>
 
             <p className="text-[15px] text-gray-500 leading-relaxed font-normal">
-              Je reist van en naar iedere locatie in Nederland en vliegvelden in Duitsland en België.
+              {t('trust.nationwideDesc')}
             </p>
           </div>
         </div>
 
-        {/* Card 3: Betrouwbaar */}
+        {/* Card 3: Gratis annuleren */}
         <div className="bg-white rounded-[22px] p-7 sm:p-8 border border-blue-100/70 shadow-[0_10px_35px_rgba(0,34,84,0.05)] hover:shadow-[0_15px_45px_rgba(0,34,84,0.09)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
           <div>
-            {/* Clock icon in light blue rounded square */}
             <div className="w-12 h-12 rounded-2xl bg-[#EBF2FC] flex items-center justify-center text-[#0B2559] mb-5">
               <Clock className="w-6 h-6 text-[#0B2559] stroke-[2.2]" />
             </div>
 
             <h3 className="text-xl font-bold text-[#07152B] mb-2.5 tracking-tight">
-              Betrouwbaar
+              {t('trust.cancelTitle')}
             </h3>
 
             <p className="text-[15px] text-gray-500 leading-relaxed font-normal">
-              Wij houden ons aan de afspraak. De chauffeur staat op het afgesproken tijdstip voor je klaar.
+              {t('trust.cancelDesc')}
             </p>
           </div>
         </div>

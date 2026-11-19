@@ -1,11 +1,13 @@
 import React from 'react';
 import { ArrowRight, Phone, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PromotionalBannerProps {
   onOpenContact: () => void;
 }
 
 export const PromotionalBanner: React.FC<PromotionalBannerProps> = ({ onOpenContact }) => {
+  const { t } = useLanguage();
   return (
     <section className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 mb-16 sm:mb-20">
       <div className="relative overflow-hidden rounded-[28px] sm:rounded-[36px] bg-[#001331] text-white p-8 sm:p-12 md:p-14 shadow-2xl shadow-[#001331]/40">
@@ -54,16 +56,15 @@ export const PromotionalBanner: React.FC<PromotionalBannerProps> = ({ onOpenCont
             {/* Badge */}
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFB800]/15 border border-[#FFB800]/30 text-[#FFB800] text-xs font-bold uppercase tracking-wider mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FFB800]" />
-              Jouw taxipartner in Nederland
+              {t('promo.badge')}
             </span>
 
             <h3 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-white leading-tight">
               Taxi mooo –{' '}
-              <span className="text-[#FFB800]">Altijd betrouwbaar</span>
+              <span className="text-[#FFB800]">{t('hero.reliable')}</span>
             </h3>
             <p className="mt-3 text-base sm:text-lg text-white/70 font-medium leading-relaxed">
-              24/7 beschikbaar, vaste prijzen, professionele chauffeurs.<br className="hidden sm:inline" />
-              Van Haarlem en Amsterdam tot heel Nederland.
+              {t('promo.sub')}
             </p>
 
             {/* Quick contact icons */}
@@ -85,7 +86,7 @@ export const PromotionalBanner: React.FC<PromotionalBannerProps> = ({ onOpenCont
               onClick={onOpenContact}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-[#FFB800] hover:bg-[#FFA500] text-[#001331] font-black text-base shadow-xl shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
             >
-              <span>Neem contact op</span>
+              <span>{t('contact.openForm')}</span>
               <ArrowRight className="w-5 h-5 stroke-[2.5]" />
             </button>
           </div>

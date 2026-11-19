@@ -1,12 +1,14 @@
 import React from 'react';
 import { Star, CheckCircle2, Quote, ArrowRight } from 'lucide-react';
 import { allReviews } from '../data/reviewsData';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ReviewsSectionProps {
   onNavigateToReviews?: () => void;
 }
 
 export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ onNavigateToReviews }) => {
+  const { t } = useLanguage();
   // Exactly 3 featured reviews on the homepage
   const homeReviews = allReviews.slice(0, 3);
 
@@ -18,16 +20,16 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ onNavigateToRevi
         <div className="space-y-3 max-w-2xl">
           <div className="flex items-center gap-3">
             <span className="px-3.5 py-1.5 rounded-full bg-[#EBF2FC] text-[#0B2559] text-xs font-extrabold uppercase tracking-wider">
-              Klantbeoordelingen
+              {t('reviews.badge')}
             </span>
             <span className="h-1 w-10 bg-[#FFB800] rounded-full"></span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black tracking-tight text-[#07152B] leading-[1.15]">
-            Wat onze reizigers vertellen
+            {t('reviews.title')}
           </h2>
           <p className="text-sm sm:text-base text-gray-600">
-            Lees recente ervaringen van reizigers die kozen voor het comfort en de stiptheid van Taxi mooo.
+            {t('reviews.sub')}
           </p>
         </div>
 
@@ -40,7 +42,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ onNavigateToRevi
               ))}
             </div>
             <div className="text-xs text-gray-500 font-medium">
-              Gebaseerd op <span className="font-bold text-[#07152B]">1.250+ ritten</span>
+              4.9 ★ • 2.400+ reviews
             </div>
           </div>
           <div className="h-10 w-px bg-gray-200"></div>

@@ -171,12 +171,19 @@ export const supabaseDataService = {
 
     // Remove leading # if present
     const cleanId = orderId.replace(/^#/, '');
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
 
-    const { error } = await supabase
+    let query = supabase
       .from('booking_orders')
-      .update({ status, updated_at: new Date().toISOString() })
-      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+      .update({ status, updated_at: new Date().toISOString() });
 
+    if (isUUID) {
+      query = query.or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    } else {
+      query = query.or(`order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    }
+
+    const { error } = await query;
     if (error) console.error('Error updating status in Supabase:', error);
   },
 
@@ -184,16 +191,23 @@ export const supabaseDataService = {
     if (!isSupabaseConfigured) return;
 
     const cleanId = orderId.replace(/^#/, '');
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
 
-    const { error } = await supabase
+    let query = supabase
       .from('booking_orders')
       .update({
         assigned_driver_id: driverId,
         status: 'toegewezen',
         updated_at: new Date().toISOString(),
-      })
-      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+      });
 
+    if (isUUID) {
+      query = query.or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    } else {
+      query = query.or(`order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    }
+
+    const { error } = await query;
     if (error) console.error('Error assigning driver in Supabase:', error);
   },
 
@@ -201,12 +215,17 @@ export const supabaseDataService = {
     if (!isSupabaseConfigured) return;
 
     const cleanId = orderId.replace(/^#/, '');
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
 
-    const { error } = await supabase
-      .from('booking_orders')
-      .delete()
-      .or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    let query = supabase.from('booking_orders').delete();
 
+    if (isUUID) {
+      query = query.or(`id.eq.${cleanId},order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    } else {
+      query = query.or(`order_number.eq.${cleanId},order_number.eq.${orderId}`);
+    }
+
+    const { error } = await query;
     if (error) console.error('Error deleting order in Supabase:', error);
   },
 

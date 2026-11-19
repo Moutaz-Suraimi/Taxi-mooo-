@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   CreditCard,
@@ -13,9 +13,13 @@ import {
   Users,
   Calculator,
   Compass,
+  Calendar,
+  Luggage,
+  Repeat,
 } from 'lucide-react';
 import type { BookingData } from './TaxiBookingForm';
 import { adminBookingService } from '../services/adminBookingService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FareCalculationModalProps {
   isOpen: boolean;
@@ -76,7 +80,8 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
   onClose,
   bookingData,
 }) => {
-  const [selectedVehicle, setSelectedVehicle] = useState<'klein' | 'groot'>('klein');
+  const { t } = useLanguage();
+
   const [customerName, setCustomerName] = useState(() => {
     try {
       const u = localStorage.getItem('taximooo_user');
@@ -105,18 +110,11 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
   const [isBooked, setIsBooked] = useState(false);
   const [bookingRefId, setBookingRefId] = useState('');
 
-  // Sync selected vehicle when bookingData changes
-  useEffect(() => {
-    if (bookingData) {
-      if (bookingData.passengers > 3) {
-        setSelectedVehicle('groot');
-      } else if (bookingData.vehicleType) {
-        setSelectedVehicle(bookingData.vehicleType);
-      }
-    }
-  }, [bookingData]);
-
   if (!isOpen || !bookingData) return null;
+
+  // The vehicle is strictly the one selected during booking - NO selection inside the modal
+  const selectedVehicle: 'klein' | 'groot' =
+    bookingData.vehicleType || (bookingData.passengers > 3 ? 'groot' : 'klein');
 
   // Exact distance and duration
   const estimatedKm = calculateDistance(bookingData.pickup, bookingData.destination, bookingData.stops.length);
@@ -124,17 +122,21 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
 
   const returnMultiplier = bookingData.isReturnTrip ? 2 : 1;
 
-  // Exact formulas requested by user:
+  // Exact rates:
   // Kleine auto: Afstand * 2.39 euro (3 personen)
   // Grote auto: Afstand * 3.04 euro (5 personen)
   const kleineKmRate = 2.39;
   const groteKmRate = 3.04;
 
-  const kleinePrice = Number((estimatedKm * kleineKmRate * returnMultiplier).toFixed(2));
-  const grotePrice = Number((estimatedKm * groteKmRate * returnMultiplier).toFixed(2));
-
-  const currentPrice = selectedVehicle === 'klein' ? kleinePrice : grotePrice;
   const currentRate = selectedVehicle === 'klein' ? kleineKmRate : groteKmRate;
+  const currentPrice = Number((estimatedKm * currentRate * returnMultiplier).toFixed(2));
+
+  const formattedPickupDate =
+    bookingData.pickupDateType === 'vandaag'
+      ? new Date().toISOString().split('T')[0]
+      : bookingData.pickupDateType === 'morgen'
+      ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
+      : bookingData.customDate || new Date().toISOString().split('T')[0];
 
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,13 +144,6 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
     setBookingRefId(generatedId);
 
     // Save order into Admin Dispatch System
-    const formattedPickupDate =
-      bookingData.pickupDateType === 'vandaag'
-        ? new Date().toISOString().split('T')[0]
-        : bookingData.pickupDateType === 'morgen'
-        ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
-        : bookingData.customDate || new Date().toISOString().split('T')[0];
-
     adminBookingService.saveOrder({
       id: generatedId,
       createdAt: new Date().toISOString(),
@@ -188,13 +183,14 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
               ✓
             </div>
             <div>
-              <h3 className="font-bold text-lg">Ritprijs Berekening</h3>
-              <p className="text-xs text-blue-200">Vaste kilometertarieven – Geen verborgen kosten</p>
+              <h3 className="font-bold text-lg">{t('fare.title')}</h3>
+              <p className="text-xs text-blue-200">{t('fare.fixedPriceGuaranteed')}</p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-white/10 text-white transition cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -207,37 +203,36 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
               <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
                 <Check className="w-10 h-10 stroke-[3]" />
               </div>
-              <h4 className="text-2xl font-black text-[#07152B]">Reservering Bevestigd!</h4>
+              <h4 className="text-2xl font-black text-[#07152B]">{t('fare.bookingSuccess')}</h4>
               <p className="text-sm text-gray-600 max-w-md mx-auto">
-                Bedankt <strong className="text-[#00255c]">{customerName}</strong>! We hebben een
-                bevestiging met reserveringsnummer <strong className="text-[#00255c]">{bookingRefId}</strong> verstuurd naar <strong>{customerEmail}</strong>.
+                {t('fare.thankYou')} <strong className="text-[#00255c]">{customerName}</strong>! {t('fare.confirmationSent')} <strong className="text-[#00255c]">{bookingRefId}</strong> {t('fare.sentTo')} <strong>{customerEmail}</strong>.
               </p>
 
               <div className="p-4 bg-[#EBF2FC] rounded-2xl border border-slate-200 text-left max-w-md mx-auto text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Vertrek:</span>
+                  <span className="text-gray-500">{t('fare.from')}</span>
                   <span className="font-bold text-[#07152B] truncate max-w-[240px]">{bookingData.pickup}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Bestemming:</span>
+                  <span className="text-gray-500">{t('fare.to')}</span>
                   <span className="font-bold text-[#07152B] truncate max-w-[240px]">{bookingData.destination}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Afstand:</span>
+                  <span className="text-gray-500">{t('fare.calculatedDistance')}:</span>
                   <span className="font-bold text-[#07152B]">{estimatedKm} km</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Gekozen auto:</span>
+                  <span className="text-gray-500">{t('fare.vehicle')}</span>
                   <span className="font-bold text-[#00255c]">
-                    {selectedVehicle === 'klein' ? 'Kleine auto (tot 3 pers.)' : 'Grote auto (tot 5 pers.)'}
+                    {selectedVehicle === 'klein' ? t('fare.smallCar') : t('fare.largeCar')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Kilometertarief:</span>
+                  <span className="text-gray-500">{t('fare.kmRate')}</span>
                   <span className="font-bold text-[#07152B]">€{currentRate.toFixed(2)} / km</span>
                 </div>
                 <div className="flex justify-between text-base pt-2 border-t border-slate-200 font-extrabold text-[#07152B]">
-                  <span>Vast Totaalbedrag:</span>
+                  <span>{t('fare.totalFare')}</span>
                   <span className="text-[#24B65A]">€{currentPrice.toFixed(2)}</span>
                 </div>
               </div>
@@ -247,57 +242,118 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                   onClick={onClose}
                   className="px-8 py-3 rounded-xl bg-[#00255c] text-white font-bold hover:bg-[#001331] transition cursor-pointer"
                 >
-                  Klaar & Venster sluiten
+                  {t('fare.closeWindow')}
                 </button>
               </div>
             </div>
           ) : (
             <>
-              {/* Trip Details Summary Card */}
-              <div className="p-4 bg-[#EBF2FC] rounded-2xl border border-slate-200">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-slate-200/50">
+              {/* Trip Details Summary Card (Read-Only: shows only what was booked in the booking form) */}
+              <div className="p-4 sm:p-5 bg-[#EBF2FC] rounded-2xl border border-slate-200 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#00255c] text-[#FFD500] flex items-center justify-center font-bold text-sm">
                       TAXI
                     </div>
                     <div>
                       <div className="text-xs uppercase font-bold tracking-wider text-[#0B2559]">
-                        Berekende afstand & reistijd
+                        {t('fare.bookedSummary')}
                       </div>
                       <div className="text-sm font-extrabold text-[#07152B]">
-                        {estimatedKm} km • ca. {estimatedMins} minuten
+                        {estimatedKm} km • ca. {estimatedMins} {t('fare.minutes')}
                       </div>
                     </div>
                   </div>
                   {bookingData.isReturnTrip && (
                     <span className="px-3 py-1 bg-[#FFD500] text-[#07152B] text-xs font-bold rounded-full">
-                      Inclusief Retour (2x)
+                      {t('fare.includesReturn')}
                     </span>
                   )}
                 </div>
 
-                <div className="pt-3 space-y-2 text-sm">
+                {/* Route addresses */}
+                <div className="space-y-2 text-sm bg-white p-3.5 rounded-xl border border-slate-200/70">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
-                    <span className="text-gray-500 text-xs">Van:</span>
+                    <span className="text-gray-500 text-xs font-semibold">{t('fare.from')}</span>
                     <span className="font-semibold text-[#07152B] truncate">{bookingData.pickup}</span>
                   </div>
                   {bookingData.stops.map((s, i) => (
                     <div key={i} className="flex items-center gap-2 pl-1">
                       <div className="w-2 h-2 rounded-full bg-[#FFB800] shrink-0" />
-                      <span className="text-gray-500 text-xs">Stop {i + 1}:</span>
+                      <span className="text-gray-500 text-xs font-semibold">{t('fare.stop')} {i + 1}:</span>
                       <span className="font-medium text-[#07152B] truncate">{s}</span>
                     </div>
                   ))}
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-gray-500 text-xs">Naar:</span>
+                    <span className="text-gray-500 text-xs font-semibold">{t('fare.to')}</span>
                     <span className="font-semibold text-[#07152B] truncate">{bookingData.destination}</span>
                   </div>
                 </div>
 
+                {/* Booked options grid: Vehicle, Passengers, Luggage, Date/Time */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  {/* Vehicle chosen during booking */}
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 flex flex-col gap-1">
+                    <span className="text-gray-500 text-[11px] font-medium flex items-center gap-1">
+                      <Car className="w-3.5 h-3.5 text-[#00255c]" />
+                      {t('fare.vehicle')}
+                    </span>
+                    <span className="font-bold text-[#07152B] truncate">
+                      {selectedVehicle === 'klein' ? t('fare.smallCar') : t('fare.largeCar')}
+                    </span>
+                  </div>
+
+                  {/* Passengers */}
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 flex flex-col gap-1">
+                    <span className="text-gray-500 text-[11px] font-medium flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-[#00255c]" />
+                      {t('fare.passengers')}
+                    </span>
+                    <span className="font-bold text-[#07152B]">
+                      {bookingData.passengers} {bookingData.passengers > 1 ? t('fare.passengersUnit') : t('fare.passengerUnit')}
+                    </span>
+                  </div>
+
+                  {/* Luggage */}
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 flex flex-col gap-1">
+                    <span className="text-gray-500 text-[11px] font-medium flex items-center gap-1">
+                      <Luggage className="w-3.5 h-3.5 text-[#00255c]" />
+                      {t('fare.luggage')}
+                    </span>
+                    <span className="font-bold text-[#07152B]">
+                      {bookingData.hasLuggage ? t('booking.yes') : t('booking.no')}
+                    </span>
+                  </div>
+
+                  {/* Pickup date & time */}
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 flex flex-col gap-1">
+                    <span className="text-gray-500 text-[11px] font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[#00255c]" />
+                      {t('fare.pickupDate')}
+                    </span>
+                    <span className="font-bold text-[#07152B] truncate">
+                      {formattedPickupDate} {bookingData.pickupTime}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Return Trip Details if selected */}
+                {bookingData.isReturnTrip && (
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 flex items-center justify-between text-xs">
+                    <span className="text-gray-500 flex items-center gap-1.5 font-medium">
+                      <Repeat className="w-3.5 h-3.5 text-[#00255c]" />
+                      {t('fare.returnTrip')}
+                    </span>
+                    <span className="font-bold text-[#00255c]">
+                      {bookingData.returnDate} • {bookingData.returnTime}
+                    </span>
+                  </div>
+                )}
+
                 {/* Google Maps Route Link */}
-                <div className="mt-3 pt-2.5 border-t border-slate-200/50 flex items-center justify-between">
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
                       bookingData.pickup
@@ -307,132 +363,62 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00255c] hover:text-[#001331] hover:underline cursor-pointer"
                   >
                     <Compass className="w-3.5 h-3.5 text-[#00255c]" />
-                    <span>Bekijk route & live verkeer in Google Maps ↗</span>
+                    <span>{t('fare.viewMaps')}</span>
                   </a>
-                  <span className="text-[11px] text-gray-400">Nederland 🇳🇱</span>
+                  <span className="text-[11px] text-gray-400">{t('fare.netherlands')}</span>
                 </div>
               </div>
 
-              {/* Vehicle Selection & Live Price Calculation */}
-              <div>
-                <label className="block text-sm font-bold text-[#07152B] mb-2.5">
-                  Kies je gewenste auto & bekijk de berekening:
-                </label>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* Option 1: Kleine auto */}
-                  <div
-                    onClick={() => {
-                      if (bookingData.passengers > 3) return;
-                      setSelectedVehicle('klein');
-                    }}
-                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
-                      bookingData.passengers > 3
-                        ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200'
-                        : selectedVehicle === 'klein'
-                        ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/15 cursor-pointer'
-                        : 'border-gray-200 hover:border-slate-200 bg-white cursor-pointer'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Car className="w-5 h-5 text-[#00255c]" />
-                          <span className="font-extrabold text-base text-[#07152B]">Kleine auto</span>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                          bookingData.passengers > 3
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-blue-100 text-[#00255c]'
-                        }`}>
-                          {bookingData.passengers > 3 ? `Max 3 (jij hebt ${bookingData.passengers})` : 'Tot 3 personen'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Mercedes Sedan • Max. 3 reizigers
-                      </div>
-                      <div className="text-xs font-semibold text-[#00255c] mt-1">
-                        Tarief: €2.39 per km
-                      </div>
+              {/* Price Banner (Read-only fixed price summary) */}
+              <div className="p-4.5 bg-gradient-to-r from-[#001331] to-[#00255c] rounded-2xl text-white shadow-md">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      {selectedVehicle === 'klein' ? (
+                        <Car className="w-6 h-6 text-[#FFD500]" />
+                      ) : (
+                        <Users className="w-6 h-6 text-[#FFD500]" />
+                      )}
                     </div>
-
-                    <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-baseline justify-between">
-                      <div className="text-[11px] text-gray-400">
-                        {estimatedKm} km × €2.39 {bookingData.isReturnTrip ? '× 2' : ''}
-                      </div>
-                      <div className="text-xl font-black text-[#24B65A]">
-                        €{kleinePrice.toFixed(2)}
-                      </div>
+                    <div>
+                      <span className="font-bold text-sm block text-white">
+                        {selectedVehicle === 'klein' ? t('fare.smallCar') : t('fare.largeCar')}
+                      </span>
+                      <span className="text-xs text-blue-200 flex items-center gap-1.5 mt-0.5">
+                        <Calculator className="w-3.5 h-3.5 text-[#FFD500]" />
+                        <span>
+                          {estimatedKm} km × €{currentRate.toFixed(2)}
+                          {bookingData.isReturnTrip ? ` × 2 (${t('fare.return')})` : ''}
+                        </span>
+                      </span>
                     </div>
                   </div>
-
-                  {/* Option 2: Grote auto */}
-                  <div
-                    onClick={() => setSelectedVehicle('groot')}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                      selectedVehicle === 'groot'
-                        ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/15'
-                        : 'border-gray-200 hover:border-slate-200 bg-white'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-5 h-5 text-[#00255c]" />
-                          <span className="font-extrabold text-base text-[#07152B]">Grote auto</span>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#00255c] text-[11px] font-bold">
-                          Tot 5 personen
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Mercedes Station / Bus • Max. 5 reizigers
-                      </div>
-                      <div className="text-xs font-semibold text-[#00255c] mt-1">
-                        Tarief: €3.04 per km
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-baseline justify-between">
-                      <div className="text-[11px] text-gray-400">
-                        {estimatedKm} km × €3.04 {bookingData.isReturnTrip ? '× 2' : ''}
-                      </div>
-                      <div className="text-xl font-black text-[#24B65A]">
-                        €{grotePrice.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Calculation Breakdown Banner */}
-                <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-[#00255c] shrink-0" />
-                    <span>
-                      Gekozen: <strong>{selectedVehicle === 'klein' ? 'Kleine auto (3 pers.)' : 'Grote auto (5 pers.)'}</strong>
+                  <div className="text-right">
+                    <span className="text-[11px] uppercase tracking-wider block font-bold text-blue-200">
+                      {t('fare.totalFare')}
                     </span>
-                  </div>
-                  <div className="font-mono font-bold text-[#07152B]">
-                    {estimatedKm} km × €{currentRate.toFixed(2)} {bookingData.isReturnTrip ? '× 2' : ''} = €{currentPrice.toFixed(2)}
+                    <span className="text-3xl font-black text-[#FFD500]">
+                      €{currentPrice.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Customer Contact & Booking Details Form */}
-              <form onSubmit={handleConfirmBooking} className="space-y-4 pt-2 border-t border-gray-100">
-                <h4 className="text-sm font-bold text-[#07152B]">Contactgegevens voor bevestiging</h4>
+              <form onSubmit={handleConfirmBooking} className="space-y-4 pt-1">
+                <h4 className="text-sm font-bold text-[#07152B]">{t('fare.contactDetails')}</h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Naam hoofdboeker
+                      {t('fare.name')}
                     </label>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">
                       <UserIcon className="w-4 h-4 text-gray-400 shrink-0" />
                       <input
                         type="text"
                         required
-                        placeholder="Bijv. Jan de Vries"
+                        placeholder={t('fare.namePlaceholder')}
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="w-full bg-transparent text-sm focus:outline-none"
@@ -442,14 +428,14 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Telefoonnummer (voor chauffeur sms)
+                      {t('fare.phone')}
                     </label>
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">
                       <Phone className="w-4 h-4 text-gray-400 shrink-0" />
                       <input
                         type="tel"
                         required
-                        placeholder="Bijv. +31 6 12345678"
+                        placeholder={t('fare.phonePlaceholder')}
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         className="w-full bg-transparent text-sm focus:outline-none"
@@ -460,14 +446,14 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    E-mailadres (voor factuur & bevestiging)
+                    {t('fare.email')}
                   </label>
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl">
                     <Mail className="w-4 h-4 text-gray-400 shrink-0" />
                     <input
                       type="email"
                       required
-                      placeholder="Bijv. jan@voorbeeld.nl"
+                      placeholder={t('fare.emailPlaceholder')}
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       className="w-full bg-transparent text-sm focus:outline-none"
@@ -479,17 +465,16 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-gray-800">
-                      Betaalmethode
+                      {t('fare.paymentMethod')}
                     </label>
                     <span className="text-[11px] font-semibold text-gray-500">
-                      Vaste prijs garantie
+                      {t('fare.fixedGuarantee')}
                     </span>
                   </div>
 
-                  {/* Payment Methods Section with Taxi Mooo Identity (Black, #FFC400 Yellow, White) */}
+                  {/* Payment Methods Section with Taxi Mooo Identity */}
                   <div className="bg-[#0b0f19] rounded-2xl p-3.5 border border-zinc-800 space-y-2.5">
-                    
-                    {/* 1. CASH (Only Available & Selectable - Prominently Displayed) */}
+                    {/* 1. CASH (Only Available & Selectable) */}
                     <div
                       onClick={() => setPaymentMethod('cash')}
                       role="button"
@@ -502,18 +487,17 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-white">Cash</span>
+                            <span className="font-bold text-sm text-white">{t('fare.cash')}</span>
                             <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FFC400] text-black">
-                              Beschikbaar
+                              {t('fare.available')}
                             </span>
                           </div>
                           <p className="text-xs text-gray-300 mt-0.5">
-                            Betaal contant bij de chauffeur na afloop van de rit
+                            {t('fare.cashDesc')}
                           </p>
                         </div>
                       </div>
 
-                      {/* Clear Selection Indicator */}
                       <div className="flex items-center gap-1.5 shrink-0 pl-2">
                         <div className="w-6 h-6 rounded-full bg-[#FFC400] text-black flex items-center justify-center font-bold shadow-sm">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -521,21 +505,19 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 2. DISABLED PAYMENT METHODS (Subtle Grey Overlay + Coming Soon Badges) */}
+                    {/* 2. DISABLED PAYMENT METHODS (Coming Soon) */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
                       {/* iDEAL */}
                       <div
                         aria-disabled="true"
                         className="relative overflow-hidden rounded-xl bg-zinc-900/90 border border-zinc-800/80 p-3 flex flex-col items-center justify-center text-center gap-1.5 opacity-65 cursor-not-allowed select-none"
                       >
-                        {/* Subtle Grey Overlay */}
                         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[0.5px] pointer-events-none" />
-                        
                         <div className="relative z-10 flex flex-col items-center gap-1">
                           <CreditCard className="w-4 h-4 text-zinc-400" />
                           <span className="text-xs font-semibold text-zinc-200">iDEAL</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-800/95 text-[#FFC400] border border-zinc-700/70 mt-0.5">
-                            Coming Soon
+                            {t('fare.comingSoon')}
                           </span>
                         </div>
                       </div>
@@ -545,14 +527,12 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                         aria-disabled="true"
                         className="relative overflow-hidden rounded-xl bg-zinc-900/90 border border-zinc-800/80 p-3 flex flex-col items-center justify-center text-center gap-1.5 opacity-65 cursor-not-allowed select-none"
                       >
-                        {/* Subtle Grey Overlay */}
                         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[0.5px] pointer-events-none" />
-                        
                         <div className="relative z-10 flex flex-col items-center gap-1">
                           <Smartphone className="w-4 h-4 text-zinc-400" />
-                          <span className="text-xs font-semibold text-zinc-200">Online PIN in Taxi</span>
+                          <span className="text-xs font-semibold text-zinc-200">Online PIN</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-800/95 text-[#FFC400] border border-zinc-700/70 mt-0.5">
-                            Coming Soon
+                            {t('fare.comingSoon')}
                           </span>
                         </div>
                       </div>
@@ -562,19 +542,16 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                         aria-disabled="true"
                         className="relative overflow-hidden rounded-xl bg-zinc-900/90 border border-zinc-800/80 p-3 flex flex-col items-center justify-center text-center gap-1.5 opacity-65 cursor-not-allowed select-none"
                       >
-                        {/* Subtle Grey Overlay */}
                         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[0.5px] pointer-events-none" />
-                        
                         <div className="relative z-10 flex flex-col items-center gap-1">
                           <CreditCard className="w-4 h-4 text-zinc-400" />
                           <span className="text-xs font-semibold text-zinc-200">Credit Card</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-800/95 text-[#FFC400] border border-zinc-700/70 mt-0.5">
-                            Coming Soon
+                            {t('fare.comingSoon')}
                           </span>
                         </div>
                       </div>
                     </div>
-
                   </div>
                 </div>
 
@@ -584,11 +561,11 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                     type="submit"
                     className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#24B65A] to-[#1fa251] hover:from-[#1fa251] hover:to-[#1a8e45] text-white text-base font-bold shadow-lg shadow-green-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Rit definitief reserveren voor €{currentPrice.toFixed(2)}</span>
+                    <span>{t('fare.confirmButton')} €{currentPrice.toFixed(2)}</span>
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <p className="text-center text-[11px] text-gray-400 mt-2">
-                    Kosteloos annuleren tot 2 uur voor de ophaaltijd. Vaste prijs garantie.
+                    {t('fare.cancellationPolicy')}
                   </p>
                 </div>
               </form>

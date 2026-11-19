@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ServicesSectionProps {
   onSelectService?: (serviceName: string) => void;
@@ -17,6 +18,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
   onSelectService,
   onNavigateToServices,
 }) => {
+  const { t } = useLanguage();
   const services = [
     {
       id: 1,
@@ -30,18 +32,16 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
           />
         </svg>
       ),
-      title: 'Lokaal taxivervoer',
-      description:
-        'Comfortabel en betrouwbaar vervoer van en naar iedere bestemming in Nederland.',
+      title: t('services.nightTitle'),
+      description: t('services.nightDesc'),
       tag: 'Populair',
     },
     {
       id: 2,
       image: '/services/service-2.jpg',
       icon: <Plane className="w-5 h-5 fill-current" />,
-      title: 'Luchthavenvervoer',
-      description:
-        'Zorgeloos van en naar Schiphol en alle luchthavens inclusief gratis vluchtmonitoring.',
+      title: t('services.airportTitle'),
+      description: t('services.airportDesc'),
       tag: 'Schiphol',
     },
     {
@@ -52,36 +52,32 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
           <path d="M10 4a2 2 0 0 1 4 0v6h6a2 2 0 0 1 0 4h-6v6a2 2 0 0 1-4 0v-6H4a2 2 0 0 1 0-4h6V4z" />
         </svg>
       ),
-      title: 'Zorgvervoer',
-      description:
-        'Persoonlijk en zorgvuldig vervoer naar ziekenhuizen, zorginstellingen en afspraken.',
+      title: t('services.careTitle'),
+      description: t('services.careDesc'),
       tag: 'Zorg',
     },
     {
       id: 4,
       image: '/services/service-4.jpg',
       icon: <Briefcase className="w-5 h-5 fill-current" />,
-      title: 'Zakelijk vervoer',
-      description:
-        'Professioneel directievervoer voor zakelijke relaties met wifi en rijden op factuur.',
+      title: t('services.businessTitle'),
+      description: t('services.businessDesc'),
       tag: 'Zakelijk',
     },
     {
       id: 5,
       image: '/services/service-5.jpg',
       icon: <Landmark className="w-5 h-5 fill-current" />,
-      title: 'Vervoer naar populaire bestemmingen',
-      description:
-        'Ontdek Nederland comfortabel: Keukenhof, Zaanse Schans, musea en attracties.',
+      title: t('services.courierTitle'),
+      description: t('services.courierDesc'),
       tag: 'Sightseeing',
     },
     {
       id: 6,
       image: '/services/service-6.jpg',
       icon: <Ticket className="w-5 h-5 fill-current" />,
-      title: 'Evenementenvervoer',
-      description:
-        'Comfortabel groepsvervoer tot 8 personen van en naar festivals, concerten en evenementen.',
+      title: t('services.groupTitle'),
+      description: t('services.groupDesc'),
       tag: 'Events',
     },
   ];
@@ -102,28 +98,27 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
         <div className="space-y-3 max-w-2xl">
           <div className="flex items-center gap-3">
             <span className="px-3.5 py-1.5 rounded-full bg-[#EBF2FC] text-[#0B2559] text-xs font-extrabold uppercase tracking-wider">
-              Onze diensten
+              {t('services.badge')}
             </span>
             <span className="h-1 w-10 bg-[#FFB800] rounded-full"></span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black tracking-tight text-[#07152B] leading-[1.15]">
-            Vervoer dat bij jouw reis past
+            {t('services.title')}
           </h2>
         </div>
 
         {/* Right: Subtitle description + link */}
         <div className="lg:max-w-md lg:border-l lg:border-gray-200 lg:pl-6 space-y-3">
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Van dagelijkse ritten tot luchthavenvervoer en zakelijke trips. Taxi mooo brengt
-            je comfortabel, veilig en zorgeloos naar je bestemming.
+            {t('services.sub')}
           </p>
           {onNavigateToServices && (
             <button
               onClick={onNavigateToServices}
               className="inline-flex items-center gap-2 text-sm font-bold text-[#0B2559] hover:text-[#001331] hover:underline cursor-pointer"
             >
-              <span>Bekijk alle diensten & tarieven in detail</span>
+              <span>{t('services.viewAll')}</span>
               <ArrowRight className="w-4 h-4 text-[#FFB800]" />
             </button>
           )}
@@ -168,7 +163,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
 
               {/* Link Action */}
               <div className="pt-3 border-t border-blue-50 flex items-center justify-between text-sm font-bold text-[#0B2559] group-hover:text-[#001331] transition-all">
-                <span>Meer informatie</span>
+                <span>{t('about.moreBtn')}</span>
                 <div className="w-7 h-7 rounded-full bg-[#EBF2FC] group-hover:bg-[#0B2559] group-hover:text-[#FFB800] flex items-center justify-center transition-colors">
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </div>
@@ -184,15 +179,15 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-6 h-6 text-[#0B2559] shrink-0" />
             <div className="text-xs sm:text-sm text-[#07152B]">
-              <span className="font-bold">Zoek je een specifieke vervoersoplossing? </span>
-              Bekijk onze complete pagina met wagenpark opties en vaste tarieven.
+              <span className="font-bold">{t('services.title')} • </span>
+              {t('services.sub')}
             </div>
           </div>
           <button
             onClick={onNavigateToServices}
             className="shrink-0 px-5 py-2.5 rounded-full bg-[#0B2559] hover:bg-[#001331] text-white font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-md"
           >
-            Bekijk alle diensten & prijzen →
+            {t('services.viewAll')} →
           </button>
         </div>
       )}
