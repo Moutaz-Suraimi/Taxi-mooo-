@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabaseDataService } from '../services/supabaseDataService';
 import { setClientSession, clearClientSession } from '../services/sessionSecurity';
+import { supabase } from '../lib/supabase';
 
 // ─── Brand tokens (Main website palette) ──────────────────
 const NAVY   = '#001331';
@@ -58,10 +59,89 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ── Detect Google OAuth callback & load real user data ──
   useEffect(() => {
-    if (user) setClientSession(user);
-    else clearClientSession();
-  }, [user]);
+    const handleGoogleCallback = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+
+        const supaUser = session.user;
+        const googleName  = supaUser.user_metadata?.full_name || supaUser.user_metadata?.name || '';
+        const googleEmail = supaUser.email || '';
+        const googlePhone = supaUser.user_metadata?.phone || '';
+        const googleAvatar = supaUser.user_metadata?.avatar_url || '';
+
+        // Save or update client_accounts with real Google data
+        try {
+          const { data: existing } = await supabase
+            .from('client_accounts')
+            .select('*')
+            .eq('email', googleEmail)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from('client_accounts').insert({
+              full_name: googleName,
+              email: googleEmail,
+              phone: googlePhone,
+              password_hash: 'google-oauth',
+              role: 'client',
+            });
+          }
+        } catch (dbErr) {
+          console.warn('client_accounts upsert:', dbErr);
+        }
+
+        // Fetch full profile from client_accounts
+        const { data: profile } = await supabase
+          .from('client_accounts')
+          .select('*')
+          .eq('email', googleEmail)
+          .maybeSingle();
+
+        const authUser: AuthUser = {
+          name:       profile?.full_name   || googleName,
+          email:      profile?.email       || googleEmail,
+          phone:      profile?.phone       || googlePhone,
+          isLoggedIn: true,
+          balance:    Number(profile?.wallet_balance) || 0,
+          ridesCount: Number(profile?.rides_count)    || 0,
+          rating:     Number(profile?.rating)         || 5.0,
+        };
+
+        localStorage.setItem('taximooo_user', JSON.stringify(authUser));
+        setUser(authUser);
+        setClientSession(authUser);
+        setSuccessMessage(`Welkom, ${authUser.name}! Succesvol ingelogd via Google.`);
+
+        // Clear hash fragment left by OAuth redirect
+        if (window.location.hash.includes('access_token') ||
+            window.location.hash.includes('error_description')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+
+        setTimeout(() => { onClose(); onLoginSuccess?.(); }, 900);
+      } catch (err) {
+        console.warn('Google session check failed:', err);
+      }
+    };
+
+    // Run on mount — covers the redirect-back scenario
+    handleGoogleCallback();
+
+    // Also listen for auth state changes (popup / in-tab flow)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          await handleGoogleCallback();
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -148,25 +228,26 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
     }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
-    setTimeout(() => {
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.href,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+      if (oauthError) throw oauthError;
+      // Supabase will redirect the browser to Google — no further action needed here
+    } catch (err: any) {
+      setError(err.message || 'Google login mislukt. Probeer het opnieuw.');
       setIsLoading(false);
-      const newUser = {
-        name: 'Klant',
-        email: 'klant@taximooo.nl',
-        phone: '',
-        isLoggedIn: true,
-        balance: 0,
-        ridesCount: 0,
-        rating: 5.0,
-      };
-      setUser(newUser);
-      setClientSession(newUser);
-      setSuccessMessage('Succesvol ingelogd via Google!');
-      setTimeout(() => { onClose(); onLoginSuccess?.(); }, 700);
-    }, 700);
+    }
   };
 
   const handleLogout = () => {

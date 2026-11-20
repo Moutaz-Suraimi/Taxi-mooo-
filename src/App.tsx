@@ -16,6 +16,7 @@ import { FareCalculationModal } from './components/FareCalculationModal';
 import { AccountModal } from './components/AccountModal';
 import { ContactModal } from './components/ContactModal';
 import { InformationModal } from './components/InformationModal';
+import { supabase } from './lib/supabase';
 
 // Dedicated Pages
 import { AboutPage } from './pages/AboutPage';
@@ -54,6 +55,26 @@ export function App() {
       document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
     }, 60);
   };
+
+  // ── Google OAuth redirect handler ──────────────────────────────────
+  // After Google redirects back, the URL contains access_token in the hash.
+  // Open the AccountModal so the user sees their session being loaded.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token') || hash.includes('error_description')) {
+      setIsAccountModalOpen(true);
+    }
+
+    // Also listen for Supabase auth state changes (covers in-tab redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setIsAccountModalOpen(true);
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Listen to hash change for #admin and #dashboard routes
   useEffect(() => {
