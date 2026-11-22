@@ -231,15 +231,22 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                 </div>
 
                 {/* ── Vehicle Photo Card (Sedan vs Minibus) ── */}
-                <div className="flex flex-col sm:flex-row items-center gap-3.5 p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                  <div className="relative w-full sm:w-36 h-24 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="relative w-full sm:w-48 md:w-52 h-36 sm:h-32 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-gradient-to-b from-white via-slate-50 to-slate-100 flex items-center justify-center p-2 group shadow-xs">
                     <img
                       src={selectedVehicle === 'klein' ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
                       alt={selectedVehicle === 'klein' ? 'Mercedes Sedan' : 'Grote auto'}
-                      className={`w-full h-full ${selectedVehicle === 'klein' ? 'object-cover' : 'object-contain p-1'}`}
+                      className={`w-full h-full transition-transform duration-300 group-hover:scale-105 ${
+                        selectedVehicle === 'klein'
+                          ? 'object-cover object-center rounded-lg shadow-xs'
+                          : 'object-contain drop-shadow-md p-0.5'
+                      }`}
                     />
-                    <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-[#001331]/90 text-[#FFD500] text-[10px] font-black shadow">
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-[#001331]/90 text-[#FFD500] text-[10px] font-black shadow border border-[#FFD500]/30">
                       {selectedVehicle === 'klein' ? '1–4 pers.' : '1–7 pers.'}
+                    </span>
+                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#FFB800] text-[#001331] text-[10px] font-black shadow">
+                      {selectedVehicle === 'klein' ? '€2.39 / km' : '€3.04 / km'}
                     </span>
                   </div>
                   <div className="flex-1 w-full text-start">
@@ -247,14 +254,29 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                       <span className="text-[11px] font-black text-[#00255c] uppercase tracking-wider">
                         {selectedVehicle === 'klein' ? t('booking.smallCar') : t('booking.largeCar')}
                       </span>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {language === 'ar' ? 'السيارة المختارة' : language === 'es' ? 'Vehículo seleccionado' : language === 'en' ? 'Selected vehicle' : 'Gekozen voertuig'}
                       </span>
                     </div>
                     <h4 className="text-sm sm:text-base font-extrabold text-[#07152B] mt-0.5">
                       {selectedVehicle === 'klein' ? 'Mercedes-Benz E-Class Sedan' : 'Mercedes-Benz V-Class Taxibus'}
                     </h4>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+
+                    {/* Specs badges */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
+                        {selectedVehicle === 'klein'
+                          ? (language === 'ar' ? '👥 حتى 4 ركاب' : language === 'es' ? '👥 Máx. 4 pers.' : language === 'en' ? '👥 Max 4 pers.' : '👥 Max. 4 pers.')
+                          : (language === 'ar' ? '👥 حتى 7 ركاب' : language === 'es' ? '👥 Máx. 7 pers.' : language === 'en' ? '👥 Max 7 pers.' : '👥 Max. 7 pers.')}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
+                        {selectedVehicle === 'klein'
+                          ? (language === 'ar' ? '🧳 3 حقائب' : language === 'es' ? '🧳 3 maletas' : language === 'en' ? '🧳 3 suitcases' : '🧳 3 koffers')
+                          : (language === 'ar' ? '🧳 7 حقائب' : language === 'es' ? '🧳 7 maletas' : language === 'en' ? '🧳 7 suitcases' : '🧳 7 koffers')}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
                       {selectedVehicle === 'klein'
                         ? (language === 'ar'
                             ? 'سيدان فاخرة ومريحة تستوعب حتى 4 ركاب مع حقائب السفر.'

@@ -182,18 +182,9 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
   };
 
   const handleIncreasePassengers = () => {
-    if (vehicleType === 'klein') {
-      if (passengers < 4) {
-        setPassengers(passengers + 1);
-      } else {
-        // Auto upgrade to Grote auto when increasing above 4 passengers
-        setVehicleType('groot');
-        setPassengers(5);
-      }
-    } else {
-      if (passengers < 7) {
-        setPassengers(passengers + 1);
-      }
+    const max = vehicleType === 'klein' ? 4 : 7;
+    if (passengers < max) {
+      setPassengers(passengers + 1);
     }
   };
 
@@ -539,13 +530,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 }`}
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-sm">
+                  <div className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white shadow-xs flex items-center justify-center p-1">
                     <img
                       src="/chauffeur-mercedes-web.jpg"
                       alt="Sedan"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover object-center rounded-lg group-hover:scale-105 transition-transform duration-300"
                     />
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-[#001331]/90 text-[#FFD500] text-[9px] font-bold rounded">
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#001331]/90 text-[#FFD500] text-[10px] font-black rounded shadow">
                       1–4
                     </span>
                   </div>
@@ -585,13 +576,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 }`}
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+                  <div className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white shadow-xs flex items-center justify-center p-1">
                     <img
                       src="/grote-auto.png"
                       alt="Grote auto"
-                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-0.5"
+                      className="w-full h-full object-contain drop-shadow-xs group-hover:scale-105 transition-transform duration-300 p-0.5"
                     />
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-[#001331]/90 text-[#FFD500] text-[9px] font-bold rounded">
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#001331]/90 text-[#FFD500] text-[10px] font-black rounded shadow">
                       1–7
                     </span>
                   </div>
@@ -623,34 +614,61 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
             </div>
 
             {/* ── Live Selected Vehicle Preview Card ── */}
-            <div className="mt-3 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#001331] via-[#001e47] to-[#00255c] text-white flex flex-col sm:flex-row items-center gap-4 border border-[#FFB800]/30 shadow-lg animate-in fade-in duration-200">
-              <div className="relative w-full sm:w-36 h-24 rounded-xl overflow-hidden shrink-0 border border-white/20 bg-white/10 flex items-center justify-center">
+            <div className="mt-3 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#001331] via-[#001c42] to-[#00255c] text-white flex flex-col md:flex-row items-center gap-4 sm:gap-5 border border-[#FFB800]/30 shadow-xl animate-in fade-in duration-200">
+              <div className="relative w-full md:w-64 h-48 sm:h-44 rounded-2xl overflow-hidden shrink-0 border-2 border-white/20 bg-gradient-to-b from-white via-slate-50 to-slate-100 shadow-md flex items-center justify-center p-2.5 group">
                 <img
                   src={vehicleType === 'klein' ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
-                  alt={vehicleType === 'klein' ? 'Mercedes E-Class Sedan' : 'Grote auto Mercedes V-Class'}
-                  className={`w-full h-full ${vehicleType === 'klein' ? 'object-cover' : 'object-contain p-1'}`}
+                  alt={vehicleType === 'klein' ? 'Mercedes-Benz E-Class Sedan' : 'Mercedes-Benz V-Class Taxibus'}
+                  className={`w-full h-full transition-transform duration-300 group-hover:scale-105 ${
+                    vehicleType === 'klein'
+                      ? 'object-cover object-center rounded-xl shadow-xs'
+                      : 'object-contain drop-shadow-md p-1'
+                  }`}
                 />
-                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-[#FFB800] text-[#001331] text-[10px] font-black rounded-md shadow">
+                <span className="absolute top-2.5 left-2.5 px-2.5 py-1 bg-[#001331]/90 backdrop-blur-sm text-[#FFD500] text-[11px] font-black rounded-lg shadow border border-[#FFD500]/30">
                   {vehicleType === 'klein'
-                    ? (language === 'ar' ? '1–4 ركاب' : language === 'es' ? '1–4 Pasajeros' : language === 'en' ? '1–4 Passengers' : '1–4 Passagiers')
-                    : (language === 'ar' ? '1–7 ركاب' : language === 'es' ? '1–7 Pasajeros' : language === 'en' ? '1–7 Passengers' : '1–7 Passagiers')}
+                    ? (language === 'ar' ? '1–4 ركاب • سيدان' : language === 'es' ? '1–4 Pasajeros • Sedán' : language === 'en' ? '1–4 Passengers • Sedan' : '1–4 Passagiers • Sedan')
+                    : (language === 'ar' ? '1–7 ركاب • باص وفان' : language === 'es' ? '1–7 Pasajeros • Minibús' : language === 'en' ? '1–7 Passengers • Taxibus' : '1–7 Passagiers • Taxibus')}
+                </span>
+                <span className="absolute bottom-2.5 right-2.5 px-2.5 py-1 bg-[#FFB800] text-[#001331] text-[10px] font-black rounded-md shadow">
+                  {vehicleType === 'klein' ? '€2.39 / km' : '€3.04 / km'}
                 </span>
               </div>
               <div className="flex-1 w-full text-start">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[11px] font-black text-[#FFB800] uppercase tracking-wider">
                     {vehicleType === 'klein'
                       ? (language === 'ar' ? 'السيارة المختارة: سيدان فاخرة' : language === 'es' ? 'Elegido: Sedán de Lujo' : language === 'en' ? 'Selected: Luxury Sedan' : 'Gekozen: Luxe Sedan')
-                      : (language === 'ar' ? 'السيارة المختارة: باص وفان عائلي' : language === 'es' ? 'Elegido: Minibús Espacioso' : language === 'en' ? 'Selected: Spacious Van' : 'Gekozen: Ruime Taxibus')}
+                      : (language === 'ar' ? 'السيارة المختارة: باص وفان عائلي' : language === 'es' ? 'Elegido: Minibús Espacioso' : language === 'en' ? 'Selected: Spacious Minibus' : 'Gekozen: Ruime Taxibus')}
                   </span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/90">
-                    {vehicleType === 'klein' ? '€2.39 / km' : '€3.04 / km'}
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/90">
+                    {vehicleType === 'klein' ? 'Mercedes-Benz E-Class' : 'Mercedes-Benz V-Class'}
                   </span>
                 </div>
-                <h4 className="text-base font-black text-white mt-0.5">
+                <h4 className="text-base sm:text-lg font-black text-white mt-1">
                   {vehicleType === 'klein' ? 'Mercedes-Benz E-Class Sedan' : 'Mercedes-Benz V-Class Taxibus'}
                 </h4>
-                <p className="text-xs text-white/70 mt-1 leading-relaxed">
+
+                {/* Feature Specs Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-medium border border-white/10">
+                    {vehicleType === 'klein'
+                      ? (language === 'ar' ? '👥 حتى 4 ركاب' : language === 'es' ? '👥 Máx. 4 pers.' : language === 'en' ? '👥 Max 4 pers.' : '👥 Max. 4 pers.')
+                      : (language === 'ar' ? '👥 حتى 7 ركاب' : language === 'es' ? '👥 Máx. 7 pers.' : language === 'en' ? '👥 Max 7 pers.' : '👥 Max. 7 pers.')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-medium border border-white/10">
+                    {vehicleType === 'klein'
+                      ? (language === 'ar' ? '🧳 3 حقائب كبيرة' : language === 'es' ? '🧳 3 maletas' : language === 'en' ? '🧳 3 suitcases' : '🧳 3 koffers')
+                      : (language === 'ar' ? '🧳 7 حقائب كاملة' : language === 'es' ? '🧳 7 maletas' : language === 'en' ? '🧳 7 suitcases' : '🧳 7 koffers')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-medium border border-white/10">
+                    {vehicleType === 'klein'
+                      ? (language === 'ar' ? '❄️ تكييف ومقاعد جلدية' : language === 'es' ? '❄️ Clima y cuero' : language === 'en' ? '❄️ Climate & leather' : '❄️ Airco & leder')
+                      : (language === 'ar' ? '🚪 أبواب كهربائية ومساحة رحبة' : language === 'es' ? '🚪 Puertas eléctricas y espacio' : language === 'en' ? '🚪 Power doors & space' : '🚪 Schuifdeuren & ruimte')}
+                  </span>
+                </div>
+
+                <p className="text-xs text-white/75 mt-2 leading-relaxed">
                   {vehicleType === 'klein'
                     ? (language === 'ar'
                         ? 'مثالية لعدد 1 حتى 4 ركاب مع الحقائب. مقاعد جلدية مريحة، تكييف متكامل وأعلى درجات الراحة.'
@@ -724,7 +742,7 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   <button
                     type="button"
                     onClick={handleDecreasePassengers}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     disabled={passengers <= 1}
                     aria-label="Reiziger verminderen"
                   >
@@ -736,34 +754,29 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   <button
                     type="button"
                     onClick={handleIncreasePassengers}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    disabled={passengers >= 7}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={vehicleType === 'klein' ? passengers >= 4 : passengers >= 7}
                     aria-label="Reiziger toevoegen"
                   >
                     +
                   </button>
                 </div>
 
-                {/* Quick Passenger Selector Pills (1 to 7) */}
+                {/* Quick Passenger Selector Pills: strictly 1-4 for Kleine auto, 1-7 for Grote auto */}
                 <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5, 6, 7].map((num) => {
+                  {(vehicleType === 'klein' ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6, 7]).map((num) => {
                     const isSelected = passengers === num;
                     return (
                       <button
                         key={num}
                         type="button"
-                        onClick={() => {
-                          setPassengers(num);
-                          if (num > 4 && vehicleType === 'klein') {
-                            setVehicleType('groot');
-                          }
-                        }}
-                        className={`w-7 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        onClick={() => setPassengers(num)}
+                        className={`w-7 sm:w-8 h-8 rounded-lg text-xs font-black transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-[#00255c] text-[#FFD500] shadow-sm ring-2 ring-[#00255c]/20'
                             : 'bg-[#FAF8FE] text-gray-700 hover:bg-[#EBF2FC] hover:text-[#00255c] border border-[#D4E2F4]'
                         }`}
-                        title={`${num} ${num === 1 ? 'passagier' : 'passagiers'}${num > 4 ? ' (Grote auto)' : ''}`}
+                        title={`${num} ${num === 1 ? 'passagier' : 'passagiers'}`}
                       >
                         {num}
                       </button>
@@ -771,6 +784,13 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   })}
                 </div>
               </div>
+
+              {/* Informative Capacity Note */}
+              <span className="text-[11px] text-gray-500 block">
+                {vehicleType === 'klein'
+                  ? (language === 'ar' ? 'سيدان: مسموح حتى 4 ركاب كحد أقصى' : language === 'es' ? 'Sedán: sólo máx. 4 pasajeros' : language === 'en' ? 'Sedan: up to 4 passengers only' : 'Sedan: max. 4 passagiers')
+                  : (language === 'ar' ? 'باص وفان: يتسع حتى 7 ركاب' : language === 'es' ? 'Minibús: hasta 7 pasajeros' : language === 'en' ? 'Taxibus: up to 7 passengers' : 'Taxibus: tot max. 7 passagiers')}
+              </span>
             </div>
 
             {/* Column 3 – Pickup Date */}

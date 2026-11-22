@@ -1322,25 +1322,40 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
           </div>
 
           {/* Dynamic Vehicle Preview Card */}
-          <div className="flex items-center gap-3 p-2.5 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl">
-            <div className="relative w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-white border border-slate-200 flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 p-3 bg-white border border-[#E2E8F0] rounded-2xl shadow-xs">
+            <div className="relative w-full sm:w-28 h-20 rounded-xl overflow-hidden shrink-0 bg-gradient-to-b from-white via-slate-50 to-slate-100 border border-slate-200 flex items-center justify-center p-1.5 shadow-xs">
               <img
                 src={Number(passengers) <= 4 ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
                 alt="Voertuig"
-                className={`w-full h-full ${Number(passengers) <= 4 ? 'object-cover' : 'object-contain p-0.5'}`}
+                className={`w-full h-full ${
+                  Number(passengers) <= 4
+                    ? 'object-cover object-center rounded-lg shadow-xs'
+                    : 'object-contain drop-shadow-sm p-0.5'
+                }`}
               />
+              <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-[#001331]/90 text-[#FFD500] text-[9px] font-black rounded">
+                {Number(passengers) <= 4 ? '1–4' : '1–7'}
+              </span>
+              <span className="absolute top-1 right-1 px-1.5 py-0.2 bg-[#FFB800] text-[#001331] text-[9px] font-black rounded">
+                {Number(passengers) <= 4 ? '€2.39/km' : '€3.04/km'}
+              </span>
             </div>
-            <div className="text-xs text-start">
-              <span className="font-extrabold text-[#001331] block">
+            <div className="text-xs text-start flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-[#001331] block">
+                  {Number(passengers) <= 4
+                    ? (language === 'ar' ? 'سيدان فاخرة (Mercedes-Benz E-Class)' : language === 'es' ? 'Sedán de Lujo (Mercedes Clase E)' : language === 'en' ? 'Luxury Sedan (Mercedes E-Class)' : 'Luxe Sedan (Mercedes-Benz E-Klasse)')
+                    : (language === 'ar' ? 'باص وفان عائلي (Mercedes-Benz V-Class)' : language === 'es' ? 'Minibús Espacioso (Mercedes Clase V)' : language === 'en' ? 'Spacious Minibus (Mercedes V-Class)' : 'Ruime Taxibus (Mercedes-Benz V-Klasse)')}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#00255c] border border-blue-200 shrink-0">
+                  {Number(passengers) <= 4 ? '1–4 pers.' : '1–7 pers.'}
+                </span>
+              </div>
+              <p className="text-gray-500 text-[11px] mt-1 leading-relaxed">
                 {Number(passengers) <= 4
-                  ? (language === 'ar' ? 'سيارة صغيرة (مرسيدس سيدان)' : language === 'es' ? 'Coche pequeño (Mercedes Sedán)' : language === 'en' ? 'Small Car (Mercedes Sedan)' : 'Kleine auto (Mercedes Sedan)')
-                  : (language === 'ar' ? 'سيارة كبيرة (مرسيدس باص / فان)' : language === 'es' ? 'Coche grande (Mercedes Minibús)' : language === 'en' ? 'Large Car (Mercedes Minibus)' : 'Grote auto (Mercedes Taxibus)')}
-              </span>
-              <span className="text-gray-500 text-[11px]">
-                {Number(passengers) <= 4
-                  ? (language === 'ar' ? 'حتى 4 ركاب' : language === 'es' ? 'Máx. 4 pasajeros' : language === 'en' ? 'Max. 4 passengers' : 'Max. 4 passagiers')
-                  : (language === 'ar' ? 'حتى 7 ركاب (سيارة كبيرة)' : language === 'es' ? 'Máx. 7 pasajeros (Coche grande)' : language === 'en' ? 'Max. 7 passengers (Large car)' : 'Max. 7 passagiers (Grote auto)')}
-              </span>
+                  ? (language === 'ar' ? 'مناسبة لعدد حتى 4 ركاب مع 3 حقائب سفر كبيرة ومقاعد جلدية فاخرة.' : language === 'es' ? 'Apto para hasta 4 pasajeros con 3 maletas y asientos de cuero.' : language === 'en' ? 'Suitable for up to 4 passengers with 3 suitcases and leather seats.' : 'Geschikt voor max. 4 personen met 3 koffers en luxe lederen stoelen.')
+                  : (language === 'ar' ? 'مساحة عائلية واسعة حتى 7 ركاب مع 7 حقائب وأبواب كهربائية.' : language === 'es' ? 'Espacio amplio para hasta 7 pasajeros con 7 maletas y puertas automáticas.' : language === 'en' ? 'Spacious for up to 7 passengers with 7 bags and automatic doors.' : 'Ruim groepsvervoer voor max. 7 personen met 7 koffers en schuifdeuren.')}
+              </p>
             </div>
           </div>
         </div>
