@@ -105,9 +105,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-blue-100">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-blue-100 min-h-[280px]">
               <img
-                src="/hero-car-clean.png"
+                src="/chauffeur-mercedes-web.jpg"
                 alt="Taxi mooo Mercedes Wagenpark"
                 className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-500"
               />
