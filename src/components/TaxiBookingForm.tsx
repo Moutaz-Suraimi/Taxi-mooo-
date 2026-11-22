@@ -29,6 +29,7 @@ import {
   reverseGeocodeDutchGPS,
   type DutchPlace,
 } from '../utils/dutchAddressService';
+import { saveAddressCoordinates } from '../utils/dutchDistanceService';
 import { useLanguage } from '../context/LanguageContext';
 
 export interface BookingData {
@@ -358,6 +359,10 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       type="button"
                       key={idx}
                       onClick={() => {
+                        if (typeof place.lat === 'number' && typeof place.lon === 'number') {
+                          saveAddressCoordinates(place.fullAddress, place.lat, place.lon);
+                          saveAddressCoordinates(place.title, place.lat, place.lon);
+                        }
                         setPickup(place.fullAddress);
                         setActiveField(null);
                       }}
@@ -434,6 +439,10 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                       type="button"
                       key={idx}
                       onClick={() => {
+                        if (typeof place.lat === 'number' && typeof place.lon === 'number') {
+                          saveAddressCoordinates(place.fullAddress, place.lat, place.lon);
+                          saveAddressCoordinates(place.title, place.lat, place.lon);
+                        }
                         setDestination(place.fullAddress);
                         setActiveField(null);
                       }}

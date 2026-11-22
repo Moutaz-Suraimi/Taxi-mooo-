@@ -16,6 +16,7 @@ import {
   DUTCH_POPULAR_PLACES,
   type DutchPlace,
 } from '../utils/dutchAddressService';
+import { saveAddressCoordinates } from '../utils/dutchDistanceService';
 
 interface DutchAddressAutocompleteProps {
   value: string;
@@ -101,6 +102,10 @@ export const DutchAddressAutocomplete: React.FC<DutchAddressAutocompleteProps> =
   }, [value]);
 
   const handleSelect = (place: DutchPlace) => {
+    if (typeof place.lat === 'number' && typeof place.lon === 'number') {
+      saveAddressCoordinates(place.fullAddress, place.lat, place.lon);
+      saveAddressCoordinates(place.title, place.lat, place.lon);
+    }
     onChange(place.fullAddress);
     onSelect?.(place);
     setIsOpen(false);

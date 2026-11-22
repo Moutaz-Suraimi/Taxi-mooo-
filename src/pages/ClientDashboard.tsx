@@ -1357,6 +1357,33 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
           />
         </div>
 
+        {/* Live Distance and Price Calculation Preview */}
+        {from.trim() && to.trim() && (() => {
+          const liveDist = calculateRealisticDutchDistance(from.trim(), to.trim());
+          const isBus = Number(passengers) > 4;
+          const liveRate = isBus ? 3.04 : 2.39;
+          const liveFare = (liveDist.km * liveRate).toFixed(2);
+          return (
+            <div className="p-3.5 bg-gradient-to-r from-[#001331] to-[#00255c] text-white rounded-xl flex items-center justify-between border border-[#FFB800]/40 shadow-sm animate-in fade-in duration-200">
+              <div className="space-y-0.5 text-xs text-start">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-[#FFB800] text-sm">🛣️ {liveDist.km} km</span>
+                  <span className="text-blue-200">· ⏱️ ~{liveDist.durationMinutes} min</span>
+                </div>
+                <div className="text-[11px] text-blue-200">
+                  {isBus ? '€3.04 / km (Taxibus)' : '€2.39 / km (Sedan)'}
+                </div>
+              </div>
+              <div className="text-end">
+                <span className="text-[10px] text-gray-300 block uppercase tracking-wider">
+                  {language === 'ar' ? 'السعر الثابت' : language === 'es' ? 'Precio fijo' : language === 'en' ? 'Fixed Fare' : 'Vaste Ritprijs'}
+                </span>
+                <span className="text-lg font-black text-[#FFB800]">€ {liveFare}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Klant info (readonly) */}
         <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 space-y-1">
           <p className="font-bold text-[#001331]">Uw gegevens worden automatisch meegestuurd:</p>
@@ -1789,6 +1816,27 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
               )}
             </button>
           </div>
+
+          {/* Live Preview of Calculated Distance and Price */}
+          {quickFrom.trim() && quickTo.trim() && (() => {
+            const previewDist = calculateRealisticDutchDistance(quickFrom.trim(), quickTo.trim());
+            const isBus = quickPassengers > 4;
+            const previewRate = isBus ? 3.04 : 2.39;
+            const previewFare = (previewDist.km * previewRate).toFixed(2);
+            return (
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-white/10 rounded-xl text-xs text-white border border-[#FFB800]/40 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#FFB800] font-extrabold text-sm">🛣️ {previewDist.km} km</span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-blue-100">⏱️ ~{previewDist.durationMinutes} min</span>
+                  <span className="text-white/60">({isBus ? '€3.04/km' : '€2.39/km'})</span>
+                </div>
+                <div className="text-end">
+                  <span className="font-black text-[#FFB800] text-base">€ {previewFare}</span>
+                </div>
+              </div>
+            );
+          })()}
         </form>
       </div>
 

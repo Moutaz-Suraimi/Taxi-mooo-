@@ -1,8 +1,12 @@
+import { saveAddressCoordinates } from './dutchDistanceService';
+
 export interface DutchPlace {
   title: string;
   subtitle: string;
   fullAddress: string;
   category: 'airport' | 'station' | 'attraction' | 'city' | 'street';
+  lat?: number;
+  lon?: number;
 }
 
 export const DUTCH_POPULAR_PLACES: DutchPlace[] = [
@@ -237,19 +241,66 @@ export const DUTCH_POPULAR_PLACES: DutchPlace[] = [
   },
 ];
 
+const QUERY_ALIASES: Record<string, string> = {
+  'مطار امستردام': 'schiphol',
+  'مطار سخيبول': 'schiphol',
+  'مطار شيفول': 'schiphol',
+  'مطار شيبول': 'schiphol',
+  'امستردام': 'amsterdam',
+  'مطار ايندهوفن': 'eindhoven airport',
+  'ايندهوفن': 'eindhoven',
+  'مطار روتردام': 'rotterdam airport',
+  'روتردام': 'rotterdam',
+  'اوتريخت': 'utrecht',
+  'لاهاي': 'den haag',
+  'مطار بروكسل': 'brussels airport',
+  'بروكسل': 'brussels',
+  'مطار دوسلدورف': 'dusseldorf airport',
+  'هارلم': 'haarlem',
+  'بريدا': 'breda',
+  'تيلبورخ': 'tilburg',
+  'غرونينغن': 'groningen',
+  'ماستريخت': 'maastricht',
+  'ليدن': 'leiden',
+  'دلفت': 'delft',
+  'aeropuerto de amsterdam': 'schiphol',
+  'aeropuerto de eindhoven': 'eindhoven airport',
+  'aeropuerto de rotterdam': 'rotterdam airport',
+  'la haya': 'den haag',
+  'roterdam': 'rotterdam',
+};
+
+function normalizeQuery(q: string): string {
+  let str = q.toLowerCase().trim();
+  str = str.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+  str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return str;
+}
+
 /**
- * Searches offline Dutch places instantly.
+ * Searches offline Dutch places instantly with multilingual query support.
  */
 export function searchOfflineDutchPlaces(query: string): DutchPlace[] {
-  const cleanQ = query.trim().toLowerCase();
+  const cleanQ = normalizeQuery(query);
   if (!cleanQ) return DUTCH_POPULAR_PLACES.slice(0, 8);
 
+  // Check if query matches a known alias
+  let aliasTarget = '';
+  for (const [alias, target] of Object.entries(QUERY_ALIASES)) {
+    if (cleanQ.includes(alias)) {
+      aliasTarget = target;
+      break;
+    }
+  }
+
+  const searchTerms = [cleanQ];
+  if (aliasTarget) searchTerms.push(aliasTarget);
+
   const matched = DUTCH_POPULAR_PLACES.filter((p) => {
-    return (
-      p.title.toLowerCase().includes(cleanQ) ||
-      p.subtitle.toLowerCase().includes(cleanQ) ||
-      p.fullAddress.toLowerCase().includes(cleanQ)
-    );
+    const t = p.title.toLowerCase();
+    const s = p.subtitle.toLowerCase();
+    const f = p.fullAddress.toLowerCase();
+    return searchTerms.some((term) => t.includes(term) || s.includes(term) || f.includes(term));
   });
 
   return matched;
@@ -268,9 +319,19 @@ export async function fetchLiveDutchAddressSuggestions(query: string): Promise<D
   // First get offline matches
   const offlineMatches = searchOfflineDutchPlaces(cleanQ);
 
+  // Check if query matches a known alias for Nominatim
+  const normQ = normalizeQuery(cleanQ);
+  let searchWord = cleanQ;
+  for (const [alias, target] of Object.entries(QUERY_ALIASES)) {
+    if (normQ.includes(alias)) {
+      searchWord = target;
+      break;
+    }
+  }
+
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      cleanQ
+      searchWord
     )}&format=json&addressdetails=1&countrycodes=nl&limit=6`;
 
     const controller = new AbortController();
@@ -299,12 +360,21 @@ export async function fetchLiveDutchAddressSuggestions(query: string): Promise<D
         const title = `${road}${houseNum}`.trim() || item.display_name.split(',')[0];
         const subtitle = `${postcode}${city}, Nederland`.trim();
         const fullAddress = `${title}, ${subtitle}`;
+        const lat = parseFloat(item.lat);
+        const lon = parseFloat(item.lon);
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+          saveAddressCoordinates(fullAddress, lat, lon);
+          saveAddressCoordinates(title, lat, lon);
+        }
 
         return {
           title,
           subtitle,
           fullAddress,
-          category: 'street',
+          category: 'street' as const,
+          lat: !isNaN(lat) ? lat : undefined,
+          lon: !isNaN(lon) ? lon : undefined,
         };
       });
 
@@ -357,9 +427,13 @@ export async function reverseGeocodeDutchGPS(lat: number, lon: number): Promise<
         const cityLine = `${postcode} ${city}`.trim();
 
         if (streetLine && cityLine) {
-          return `${streetLine}, ${cityLine}, Nederland`;
+          const formatted = `${streetLine}, ${cityLine}, Nederland`;
+          saveAddressCoordinates(formatted, lat, lon);
+          return formatted;
         } else if (cityLine) {
-          return `${cityLine}, Nederland`;
+          const formatted = `${cityLine}, Nederland`;
+          saveAddressCoordinates(formatted, lat, lon);
+          return formatted;
         }
       }
     }
