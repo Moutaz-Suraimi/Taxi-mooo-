@@ -8,45 +8,62 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ children }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isRTL = language === 'ar';
+
   return (
     <section className="relative w-full overflow-hidden text-white min-h-[520px] sm:min-h-[600px] lg:min-h-[680px]">
 
-      {/* ── Night photo background ── */}
+      {/* ── Night photo background: flipped in RTL so taxi appears on the left ── */}
       <img
         src={heroNight}
         alt="Zwarte taxi aan een Amsterdamse gracht bij nacht"
-        className="absolute inset-0 w-full h-full object-cover object-[65%_center]"
+        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${
+          isRTL ? 'scale-x-[-1] object-[65%_center]' : 'object-[65%_center]'
+        }`}
         style={{ zIndex: 0 }}
         fetchPriority="high"
       />
 
-      {/* ── Dark gradient: readable left, bright right ── */}
+      {/* ── Dark gradient: readable where text sits (left in LTR, right in RTL) ── */}
       <div
         className="absolute inset-0"
         style={{
           zIndex: 1,
-          background: `
-            linear-gradient(105deg,
-              rgba(0,10,28,0.92) 0%,
-              rgba(0,10,28,0.78) 38%,
-              rgba(0,10,28,0.30) 65%,
-              rgba(0,10,28,0.05) 100%),
-            linear-gradient(180deg,
-              rgba(0,10,28,0.15) 0%,
-              rgba(0,10,28,0.00) 55%,
-              rgba(0,10,28,0.70) 100%)
-          `,
+          background: isRTL
+            ? `
+              linear-gradient(255deg,
+                rgba(0,10,28,0.95) 0%,
+                rgba(0,10,28,0.85) 38%,
+                rgba(0,10,28,0.30) 65%,
+                rgba(0,10,28,0.05) 100%),
+              linear-gradient(180deg,
+                rgba(0,10,28,0.15) 0%,
+                rgba(0,10,28,0.00) 55%,
+                rgba(0,10,28,0.70) 100%)
+            `
+            : `
+              linear-gradient(105deg,
+                rgba(0,10,28,0.92) 0%,
+                rgba(0,10,28,0.78) 38%,
+                rgba(0,10,28,0.30) 65%,
+                rgba(0,10,28,0.05) 100%),
+              linear-gradient(180deg,
+                rgba(0,10,28,0.15) 0%,
+                rgba(0,10,28,0.00) 55%,
+                rgba(0,10,28,0.70) 100%)
+            `,
         }}
       />
 
-      {/* ── Golden brand glow (bottom-left) ── */}
+      {/* ── Golden brand glow (bottom-left in LTR, bottom-right in RTL) ── */}
       <div
         className="absolute pointer-events-none"
         style={{
           zIndex: 1,
           bottom: -60,
-          left: -40,
+          left: isRTL ? 'auto' : -40,
+          right: isRTL ? -40 : 'auto',
           width: 440,
           height: 300,
           borderRadius: '50%',
@@ -71,8 +88,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ children }) => {
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
-          {/* ── LEFT: Headline + badges ── */}
-          <div className="lg:col-span-7 xl:col-span-6 flex flex-col justify-center">
+          {/* ── Headline + badges (Right in RTL, Left in LTR) ── */}
+          <div className={`lg:col-span-7 xl:col-span-6 flex flex-col justify-center ${
+            isRTL ? 'text-right items-start' : 'text-left items-start'
+          }`}>
             {/* Availability pill */}
             <div className="animate-hero inline-flex items-center gap-2 self-start mb-5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white/90 border border-white/20 backdrop-blur-md bg-white/10">
               <span className="w-2 h-2 rounded-full bg-[#FFB800] animate-pulse" />
@@ -81,7 +100,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ children }) => {
 
             {/* Main headline */}
             <h1
-              className="animate-hero delay-100 text-4xl sm:text-5xl md:text-[56px] lg:text-[62px] xl:text-[68px] font-black tracking-tight leading-[1.06] text-white select-none"
+              className="animate-hero delay-100 text-4xl sm:text-5xl md:text-[56px] lg:text-[62px] xl:text-[68px] font-black tracking-tight leading-[1.10] text-white select-none"
             >
               {t('hero.h1_1')}<br />
               {t('hero.h1_2')}{' '}
@@ -139,14 +158,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ children }) => {
                 className="inline-flex items-center gap-2.5 px-7 py-4 rounded-2xl bg-[#FFB800] text-[#001331] font-black text-base shadow-lg shadow-[#FFB800]/30 hover:bg-[#FFA500] hover:shadow-[#FFB800]/50 hover:shadow-xl transition-all duration-200 active:scale-[0.98]"
               >
                 {t('hero.calcFare')}
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 transition-transform ${isRTL ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </a>
             </div>
           </div>
 
-          {/* ── RIGHT: empty — taxi photo shows through ── */}
+          {/* ── Empty column — where taxi photo shows through (Left in RTL, Right in LTR) ── */}
           <div className="hidden lg:block lg:col-span-5 xl:col-span-6 pointer-events-none min-h-[400px]" />
         </div>
       </div>

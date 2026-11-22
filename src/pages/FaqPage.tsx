@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Sparkles,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FaqPageProps {
   onNavigateHome: () => void;
@@ -27,6 +28,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
   onOpenContact,
   onNavigateToBooking,
 }) => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Alle');
   const [openId, setOpenId] = useState<number | null>(1);
@@ -184,25 +186,24 @@ export const FaqPage: React.FC<FaqPageProps> = ({
               onClick={onNavigateHome}
               className="hover:text-[#FFB800] transition cursor-pointer flex items-center gap-1"
             >
-              Home
+              {t('nav.home')}
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[#FFB800] font-bold">Veelgestelde vragen</span>
+            <span className="text-[#FFB800] font-bold">{t('faq.page.breadcrumb')}</span>
           </div>
 
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-[#FFB800] text-xs font-extrabold uppercase tracking-wider backdrop-blur-md border border-white/10">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>FAQ & Klantenservice</span>
+              <span>{t('faq.page.badge')}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              Veelgestelde vragen over Taxi mooo
+              {t('faq.page.h1')}
             </h1>
 
             <p className="text-base sm:text-lg text-blue-100/90 leading-relaxed font-normal">
-              Heb je een vraag over het online boeken van een taxi, onze vaste Schiphol tarieven,
-              annuleringen of bagage? Hieronder vind je directe en duidelijke antwoorden.
+              {t('faq.page.sub')}
             </p>
 
             {/* Search Input Box */}
@@ -211,7 +212,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
                 <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Zoek een vraag (bijv. Schiphol, annuleren, betalen, koffers)..."
+                  placeholder={t('faq.page.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white text-[#07152B] placeholder-gray-400 text-sm font-medium shadow-xl focus:outline-none focus:ring-2 focus:ring-[#FFD500]"
@@ -221,7 +222,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
                     onClick={() => setSearchQuery('')}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    Wissen
+                    {t('faq.page.clearSearch')}
                   </button>
                 )}
               </div>
@@ -252,7 +253,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
         {/* Results Counter */}
         <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
           <span>
-            {filteredFaqs.length} {filteredFaqs.length === 1 ? 'vraag gevonden' : 'vragen gevonden'}
+            {filteredFaqs.length} {filteredFaqs.length === 1 ? t('faq.page.foundSingle') : t('faq.page.foundPlural')}
             {activeCategory !== 'Alle' && ` in "${activeCategory}"`}
             {searchQuery && ` voor "${searchQuery}"`}
           </span>
@@ -264,7 +265,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
               }}
               className="text-[#00255c] font-bold hover:underline cursor-pointer"
             >
-              Filters resetten
+              {t('faq.page.resetFilters')}
             </button>
           )}
         </div>
@@ -316,10 +317,9 @@ export const FaqPage: React.FC<FaqPageProps> = ({
           {filteredFaqs.length === 0 && (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 space-y-3">
               <HelpCircle className="w-12 h-12 text-gray-300 mx-auto" />
-              <div className="text-lg font-bold text-gray-700">Geen vragen gevonden</div>
+              <div className="text-lg font-bold text-gray-700">{t('faq.page.noResults')}</div>
               <p className="text-sm text-gray-500 max-w-md mx-auto">
-                We konden geen vragen vinden die overeenkomen met je zoekopdracht. Probeer een andere
-                zoekterm of neem direct contact op met onze centrale.
+                {t('faq.page.noResultsSub')}
               </p>
             </div>
           )}
@@ -329,14 +329,13 @@ export const FaqPage: React.FC<FaqPageProps> = ({
         <section className="bg-gradient-to-br from-[#EBF2FC] to-[#DFEBF9] rounded-3xl p-8 sm:p-10 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-2 text-center md:text-left">
             <span className="text-xs uppercase font-extrabold tracking-wider text-[#00255c]">
-              Staat je vraag er niet tussen?
+              {t('faq.page.notListed')}
             </span>
             <h3 className="text-2xl font-black text-[#07152B]">
-              Onze centrale helpt je graag persoonlijk verder
+              {t('faq.page.helpTitle')}
             </h3>
             <p className="text-sm text-gray-600 max-w-xl">
-              We zijn 24 uur per dag, 7 dagen per week telefonisch en via WhatsApp bereikbaar om al je
-              vragen over ritten, tarieven of speciale wensen te beantwoorden.
+              {t('faq.page.helpSub')}
             </p>
           </div>
 
@@ -345,7 +344,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
               onClick={onNavigateToBooking}
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#FFD500] hover:bg-yellow-400 text-[#07152B] font-bold text-sm shadow-md transition cursor-pointer"
             >
-              <span>Rit berekenen</span>
+              <span>{t('faq.page.calcBtn')}</span>
             </button>
 
             <button
@@ -353,7 +352,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#00255c] hover:bg-[#001331] text-white font-bold text-sm shadow-md transition cursor-pointer"
             >
               <Phone className="w-4 h-4 text-[#FFD500]" />
-              <span>Contact opnemen</span>
+              <span>{t('faq.page.contactBtn')}</span>
             </button>
 
             <a
@@ -363,7 +362,7 @@ export const FaqPage: React.FC<FaqPageProps> = ({
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-bold text-sm shadow-md transition cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>WhatsApp Chat</span>
+              <span>{t('faq.page.whatsappBtn')}</span>
             </a>
           </div>
         </section>

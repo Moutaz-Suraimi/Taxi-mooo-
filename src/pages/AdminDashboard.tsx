@@ -530,7 +530,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
               title="Change Language"
             >
               <Globe className="w-3.5 h-3.5 text-[#FFB800]" />
-              <span>{language === 'nl' ? '🇳🇱 NL' : '🇬🇧 EN'}</span>
+              <span>
+                {language === 'nl' ? '🇳🇱 NL' : language === 'en' ? '🇬🇧 EN' : language === 'ar' ? '🇸🇦 AR' : '🇪🇸 ES'}
+              </span>
             </button>
             {langDropdownOpen && (
               <>
@@ -538,15 +540,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 <div className="absolute right-0 mt-2 w-36 bg-[#001331] border border-white/15 rounded-xl shadow-2xl py-1 z-50 text-xs font-bold">
                   <button
                     onClick={() => { setLanguage('nl'); setLangDropdownOpen(false); }}
-                    className={`w-full px-3 py-2 text-left flex items-center justify-between ${language === 'nl' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'nl' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
                   >
                     <span>🇳🇱 Nederlands</span>
                   </button>
                   <button
                     onClick={() => { setLanguage('en'); setLangDropdownOpen(false); }}
-                    className={`w-full px-3 py-2 text-left flex items-center justify-between ${language === 'en' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'en' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
                   >
                     <span>🇬🇧 English</span>
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('ar'); setLangDropdownOpen(false); }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'ar' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <span>🇸🇦 العربية</span>
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('es'); setLangDropdownOpen(false); }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'es' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                  >
+                    <span>🇪🇸 Español</span>
                   </button>
                 </div>
               </>

@@ -20,6 +20,7 @@ import {
 import type { BookingData } from './TaxiBookingForm';
 import { adminBookingService } from '../services/adminBookingService';
 import { useLanguage } from '../context/LanguageContext';
+import { calculateRealisticDutchDistance } from '../utils/dutchDistanceService';
 
 interface FareCalculationModalProps {
   isOpen: boolean;
@@ -27,60 +28,12 @@ interface FareCalculationModalProps {
   bookingData: BookingData | null;
 }
 
-// Estimates realistic distance between locations in the Netherlands
-function calculateDistance(pickup: string, destination: string, stopsCount: number): number {
-  const p = (pickup || '').toLowerCase();
-  const d = (destination || '').toLowerCase();
-
-  let baseKm = 18.0;
-
-  if (
-    (p.includes('amsterdam') && d.includes('schiphol')) ||
-    (p.includes('schiphol') && d.includes('amsterdam'))
-  ) {
-    baseKm = 18.4;
-  } else if (
-    (p.includes('utrecht') && d.includes('schiphol')) ||
-    (p.includes('schiphol') && d.includes('utrecht'))
-  ) {
-    baseKm = 46.2;
-  } else if (
-    (p.includes('rotterdam') && d.includes('schiphol')) ||
-    (p.includes('schiphol') && d.includes('rotterdam'))
-  ) {
-    baseKm = 63.5;
-  } else if (
-    (p.includes('den haag') && d.includes('schiphol')) ||
-    (p.includes('schiphol') && d.includes('den haag'))
-  ) {
-    baseKm = 48.0;
-  } else if (
-    (p.includes('eindhoven') && d.includes('amsterdam')) ||
-    (p.includes('amsterdam') && d.includes('eindhoven'))
-  ) {
-    baseKm = 124.0;
-  } else if (
-    p.includes('amsterdam') &&
-    (d.includes('damrak') || d.includes('museumplein') || d.includes('centraal'))
-  ) {
-    baseKm = 5.8;
-  } else if (p.includes('keukenhof') || d.includes('keukenhof')) {
-    baseKm = 37.5;
-  } else {
-    // Deterministic pseudo-distance for custom input addresses
-    const hash = (p + d).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    baseKm = 15.0 + (hash % 20);
-  }
-
-  return Number((baseKm + stopsCount * 4.5).toFixed(1));
-}
-
 export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
   isOpen,
   onClose,
   bookingData,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [customerName, setCustomerName] = useState(() => {
     try {
@@ -113,18 +66,24 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
   if (!isOpen || !bookingData) return null;
 
   // The vehicle is strictly the one selected during booking - NO selection inside the modal
+  // Sedan: 1-4 passengers | Van/Bus: 5-7 passengers
   const selectedVehicle: 'klein' | 'groot' =
-    bookingData.vehicleType || (bookingData.passengers > 3 ? 'groot' : 'klein');
+    bookingData.vehicleType || (bookingData.passengers > 4 ? 'groot' : 'klein');
 
-  // Exact distance and duration
-  const estimatedKm = calculateDistance(bookingData.pickup, bookingData.destination, bookingData.stops.length);
-  const estimatedMins = Math.round(estimatedKm * 1.35);
+  // Exact high-precision Dutch road distance and duration
+  const distanceResult = calculateRealisticDutchDistance(
+    bookingData.pickup,
+    bookingData.destination,
+    bookingData.stops.length
+  );
+  const estimatedKm = distanceResult.km;
+  const estimatedMins = distanceResult.durationMinutes;
 
   const returnMultiplier = bookingData.isReturnTrip ? 2 : 1;
 
   // Exact rates:
-  // Kleine auto: Afstand * 2.39 euro (3 personen)
-  // Grote auto: Afstand * 3.04 euro (5 personen)
+  // Kleine auto (Sedan 1-4 pers.): Afstand * 2.39 euro
+  // Grote auto (Taxibus 1-7 pers.): Afstand * 3.04 euro
   const kleineKmRate = 2.39;
   const groteKmRate = 3.04;
 
@@ -269,6 +228,50 @@ export const FareCalculationModal: React.FC<FareCalculationModalProps> = ({
                       {t('fare.includesReturn')}
                     </span>
                   )}
+                </div>
+
+                {/* ── Vehicle Photo Card (Sedan vs Minibus) ── */}
+                <div className="flex flex-col sm:flex-row items-center gap-3.5 p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="relative w-full sm:w-36 h-24 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white flex items-center justify-center">
+                    <img
+                      src={selectedVehicle === 'klein' ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
+                      alt={selectedVehicle === 'klein' ? 'Mercedes Sedan' : 'Grote auto'}
+                      className={`w-full h-full ${selectedVehicle === 'klein' ? 'object-cover' : 'object-contain p-1'}`}
+                    />
+                    <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-[#001331]/90 text-[#FFD500] text-[10px] font-black shadow">
+                      {selectedVehicle === 'klein' ? '1–4 pers.' : '1–7 pers.'}
+                    </span>
+                  </div>
+                  <div className="flex-1 w-full text-start">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-[#00255c] uppercase tracking-wider">
+                        {selectedVehicle === 'klein' ? t('booking.smallCar') : t('booking.largeCar')}
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {language === 'ar' ? 'السيارة المختارة' : language === 'es' ? 'Vehículo seleccionado' : language === 'en' ? 'Selected vehicle' : 'Gekozen voertuig'}
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-extrabold text-[#07152B] mt-0.5">
+                      {selectedVehicle === 'klein' ? 'Mercedes-Benz E-Class Sedan' : 'Mercedes-Benz V-Class Taxibus'}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      {selectedVehicle === 'klein'
+                        ? (language === 'ar'
+                            ? 'سيدان فاخرة ومريحة تستوعب حتى 4 ركاب مع حقائب السفر.'
+                            : language === 'es'
+                            ? 'Sedán confortable de lujo para hasta 4 pasajeros con equipaje.'
+                            : language === 'en'
+                            ? 'Comfortable luxury sedan for up to 4 passengers with luggage.'
+                            : 'Comfortabele sedan voor max. 4 passagiers met bagage.')
+                        : (language === 'ar'
+                            ? 'باص وفان عائلي واسع ومريح يستوعب حتى 7 ركاب مع مساحة أمتعة رحبة.'
+                            : language === 'es'
+                            ? 'Minibús espacioso para hasta 7 pasajeros con amplia capacidad de equipaje.'
+                            : language === 'en'
+                            ? 'Spacious passenger van for up to 7 passengers with generous luggage capacity.'
+                            : 'Ruime taxibus voor max. 7 passagiers met royale bagageruimte.')}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Route addresses */}

@@ -7,6 +7,8 @@ import {
   Eye, EyeOff, AlertTriangle, MessageSquare, Send, Globe,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { DutchAddressAutocomplete } from '../components/DutchAddressAutocomplete';
+import { calculateRealisticDutchDistance } from '../utils/dutchDistanceService';
 import { supabaseDataService, mapSupabaseOrderToBookingOrder } from '../services/supabaseDataService';
 import { adminBookingService } from '../services/adminBookingService';
 import { useLanguage } from '../context/LanguageContext';
@@ -1132,7 +1134,7 @@ function RittenSection({
 
 // ─── RESERVERING SECTION ─────────────────────────────────
 function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCreated?: () => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
@@ -1152,6 +1154,12 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
     }
     setLoading(true);
     try {
+      const passNum = Math.min(7, Math.max(1, Number(passengers) || 1));
+      const isBus = passNum > 4;
+      const dist = calculateRealisticDutchDistance(from.trim(), to.trim());
+      const rate = isBus ? 3.04 : 2.39;
+      const fare = Number((dist.km * rate).toFixed(2));
+
       await supabaseDataService.createOrder({
         customerName: user.name,
         customerEmail: user.email,
@@ -1161,12 +1169,12 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
         destinationAddress: to.trim(),
         pickupDate: date,
         pickupTime: time,
-        passengers: Number(passengers),
-        estimatedKm: 0,
-        vehicleType: 'klein',
+        passengers: passNum,
+        estimatedKm: dist.km,
+        vehicleType: isBus ? 'groot' : 'klein',
         hasLuggage: false,
-        kmRate: 2.39,
-        totalFare: 0,
+        kmRate: rate,
+        totalFare: fare,
         paymentMethod: 'cash',
       });
       setSubmitted(true);
@@ -1234,40 +1242,34 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
           </div>
         )}
 
-        {/* Ophaaladres */}
+        {/* Ophaaladres with Google Maps / NL Autocomplete */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
             <span className="text-red-500">*</span> {t('client.pickupLocation')}
           </label>
-          <div className="flex items-center gap-2 px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl focus-within:border-[#00255c] focus-within:ring-2 focus-within:ring-[#00255c]/10 transition">
-            <MapPin className="w-4 h-4 text-[#001331] shrink-0" />
-            <input
-              type="text"
-              required
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              placeholder="Bijv. Schiphol Airport, Amsterdam"
-              className="w-full bg-transparent text-sm text-[#07152B] focus:outline-none"
-            />
-          </div>
+          <DutchAddressAutocomplete
+            value={from}
+            onChange={setFrom}
+            placeholder="Bijv. Schiphol Airport, Amsterdam"
+            theme="light"
+            iconColor="#001331"
+            required
+          />
         </div>
 
-        {/* Bestemming */}
+        {/* Bestemming with Google Maps / NL Autocomplete */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
             <span className="text-red-500">*</span> {t('client.destination')}
           </label>
-          <div className="flex items-center gap-2 px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl focus-within:border-[#00255c] focus-within:ring-2 focus-within:ring-[#00255c]/10 transition">
-            <MapPin className="w-4 h-4 text-[#FFB800] shrink-0" />
-            <input
-              type="text"
-              required
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="Bijv. Rotterdam Centraal"
-              className="w-full bg-transparent text-sm text-[#07152B] focus:outline-none"
-            />
-          </div>
+          <DutchAddressAutocomplete
+            value={to}
+            onChange={setTo}
+            placeholder="Bijv. Rotterdam Centraal"
+            theme="light"
+            iconColor="#FFB800"
+            required
+          />
         </div>
 
         {/* Datum & Tijd */}
@@ -1302,13 +1304,45 @@ function ReserveringSection({ user, onRideCreated }: { user: AuthUser; onRideCre
         {/* Passagiers */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('client.passengers')}</label>
-          <select
-            value={passengers}
-            onChange={(e) => setPassengers(e.target.value)}
-            className="w-full px-3.5 py-3 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl text-sm text-[#07152B] focus:outline-none focus:border-[#00255c] focus:ring-2 focus:ring-[#00255c]/10 transition"
-          >
-            {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} passagier{n > 1 ? 's' : ''}</option>)}
-          </select>
+          <div className="grid grid-cols-7 gap-1.5 mb-2.5">
+            {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => setPassengers(String(num))}
+                className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  passengers === String(num)
+                    ? 'bg-[#00255c] text-[#FFD500] shadow-sm ring-2 ring-[#00255c]/20'
+                    : 'bg-[#F4F7FB] text-gray-700 hover:bg-[#E2E8F0] border border-[#E2E8F0]'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          {/* Dynamic Vehicle Preview Card */}
+          <div className="flex items-center gap-3 p-2.5 bg-[#F4F7FB] border border-[#E2E8F0] rounded-xl">
+            <div className="relative w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-white border border-slate-200 flex items-center justify-center">
+              <img
+                src={Number(passengers) <= 4 ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
+                alt="Voertuig"
+                className={`w-full h-full ${Number(passengers) <= 4 ? 'object-cover' : 'object-contain p-0.5'}`}
+              />
+            </div>
+            <div className="text-xs text-start">
+              <span className="font-extrabold text-[#001331] block">
+                {Number(passengers) <= 4
+                  ? (language === 'ar' ? 'سيارة صغيرة (مرسيدس سيدان)' : language === 'es' ? 'Coche pequeño (Mercedes Sedán)' : language === 'en' ? 'Small Car (Mercedes Sedan)' : 'Kleine auto (Mercedes Sedan)')
+                  : (language === 'ar' ? 'سيارة كبيرة (مرسيدس باص / فان)' : language === 'es' ? 'Coche grande (Mercedes Minibús)' : language === 'en' ? 'Large Car (Mercedes Minibus)' : 'Grote auto (Mercedes Taxibus)')}
+              </span>
+              <span className="text-gray-500 text-[11px]">
+                {Number(passengers) <= 4
+                  ? (language === 'ar' ? 'حتى 4 ركاب' : language === 'es' ? 'Máx. 4 pasajeros' : language === 'en' ? 'Max. 4 passengers' : 'Max. 4 passagiers')
+                  : (language === 'ar' ? 'حتى 7 ركاب (سيارة كبيرة)' : language === 'es' ? 'Máx. 7 pasajeros (Coche grande)' : language === 'en' ? 'Max. 7 passengers (Large car)' : 'Max. 7 passagiers (Grote auto)')}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Opmerkingen */}
@@ -1356,7 +1390,7 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
   unreadNotifications?: ClientNotification[];
   onRideCreated?: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [mainStatusFilter, setMainStatusFilter] = useState<'all' | 'nieuw' | 'toegewezen' | 'onderweg' | 'voltooid' | 'geannuleerd'>('all');
 
   const menuCards: {
@@ -1379,6 +1413,7 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
   const [quickTo, setQuickTo] = useState('');
   const [quickDate, setQuickDate] = useState('');
   const [quickTime, setQuickTime] = useState('');
+  const [quickPassengers, setQuickPassengers] = useState(1);
   const [quickLoading, setQuickLoading] = useState(false);
   const [quickSuccess, setQuickSuccess] = useState(false);
   const [quickError, setQuickError] = useState('');
@@ -1394,6 +1429,11 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
     try {
       const today = new Date().toISOString().split('T')[0];
       const nowTime = new Date().toTimeString().slice(0, 5);
+      const dist = calculateRealisticDutchDistance(quickFrom.trim(), quickTo.trim());
+      const isBus = quickPassengers > 4;
+      const rate = isBus ? 3.04 : 2.39;
+      const fare = Number((dist.km * rate).toFixed(2));
+
       await supabaseDataService.createOrder({
         customerName: user.name,
         customerEmail: user.email,
@@ -1402,12 +1442,12 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
         destinationAddress: quickTo.trim(),
         pickupDate: quickDate || today,
         pickupTime: quickTime || nowTime,
-        passengers: 1,
-        estimatedKm: 0,
-        vehicleType: 'klein',
+        passengers: quickPassengers,
+        estimatedKm: dist.km,
+        vehicleType: isBus ? 'groot' : 'klein',
         hasLuggage: false,
-        kmRate: 2.39,
-        totalFare: 0,
+        kmRate: rate,
+        totalFare: fare,
         paymentMethod: 'cash',
       });
       setQuickSuccess(true);
@@ -1679,32 +1719,26 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
         {/* Quick Booking Form */}
         <form onSubmit={handleQuickSubmit} className="space-y-3 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="flex items-center gap-2.5 px-3.5 py-3 bg-white/10 border border-white/15 rounded-xl focus-within:border-[#FFB800] focus-within:bg-white/15 transition backdrop-blur-sm">
-              <MapPin className="w-4 h-4 text-[#FFB800] shrink-0" />
-              <input
-                type="text"
-                required
-                value={quickFrom}
-                onChange={(e) => setQuickFrom(e.target.value)}
-                placeholder="Ophaallocatie (bijv. Amsterdam Centraal)"
-                className="w-full bg-transparent text-sm text-white placeholder-white/50 focus:outline-none"
-              />
-            </div>
+            <DutchAddressAutocomplete
+              value={quickFrom}
+              onChange={setQuickFrom}
+              placeholder="Ophaallocatie (bijv. Amsterdam Centraal)"
+              theme="dark"
+              iconColor="#FFB800"
+              required
+            />
 
-            <div className="flex items-center gap-2.5 px-3.5 py-3 bg-white/10 border border-white/15 rounded-xl focus-within:border-[#FFB800] focus-within:bg-white/15 transition backdrop-blur-sm">
-              <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-              <input
-                type="text"
-                required
-                value={quickTo}
-                onChange={(e) => setQuickTo(e.target.value)}
-                placeholder="Bestemming (bijv. Schiphol Airport)"
-                className="w-full bg-transparent text-sm text-white placeholder-white/50 focus:outline-none"
-              />
-            </div>
+            <DutchAddressAutocomplete
+              value={quickTo}
+              onChange={setQuickTo}
+              placeholder="Bestemming (bijv. Schiphol Airport)"
+              theme="dark"
+              iconColor="#34D399"
+              required
+            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
             <div>
               <input
                 type="date"
@@ -1721,6 +1755,21 @@ function MainDashboard({ user, onNavigate, onContact, recentRides, ridesLoading,
                 onChange={(e) => setQuickTime(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-white/10 border border-white/15 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#FFB800] transition"
               />
+            </div>
+            <div>
+              <select
+                value={quickPassengers}
+                onChange={(e) => setQuickPassengers(Number(e.target.value))}
+                className="w-full px-3 py-2.5 bg-[#001331] border border-white/15 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#FFB800] transition cursor-pointer"
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                  <option key={num} value={num} className="bg-[#001331] text-white">
+                    {num} {num === 1
+                      ? (language === 'ar' ? 'راكب' : language === 'es' ? 'pasajero' : language === 'en' ? 'passenger' : 'passagier')
+                      : (language === 'ar' ? 'ركاب' : language === 'es' ? 'pasajeros' : language === 'en' ? 'passengers' : 'passagiers')} {num <= 4 ? '(Sedan)' : '(Taxibus)'}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               type="submit"
@@ -2334,7 +2383,9 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
                 title="Change Language"
               >
                 <Globe className="w-3.5 h-3.5 text-[#FFB800]" />
-                <span>{language === 'nl' ? '🇳🇱 NL' : '🇬🇧 EN'}</span>
+                <span>
+                  {language === 'nl' ? '🇳🇱 NL' : language === 'en' ? '🇬🇧 EN' : language === 'ar' ? '🇸🇦 AR' : '🇪🇸 ES'}
+                </span>
               </button>
               {langDropdownOpen && (
                 <>
@@ -2353,6 +2404,20 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onExit, onOpen
                       className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'en' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
                     >
                       <span>🇬🇧 English</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLanguage('ar'); setLangDropdownOpen(false); }}
+                      className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'ar' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    >
+                      <span>🇸🇦 العربية</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLanguage('es'); setLangDropdownOpen(false); }}
+                      className={`w-full px-3 py-2 text-left flex items-center justify-between cursor-pointer ${language === 'es' ? 'bg-[#FFB800] text-[#001331]' : 'text-white hover:bg-white/10'}`}
+                    >
+                      <span>🇪🇸 Español</span>
                     </button>
                   </div>
                 </>

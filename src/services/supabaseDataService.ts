@@ -621,12 +621,29 @@ export const supabaseDataService = {
 
   // ── 7. CLIENT AUTHENTICATION ─────────────────────────────────────────
   async registerClient(name: string, email: string, phone: string, password: string) {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = name.trim();
-    const cleanPhone = phone.trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanName = (name || '').trim() || cleanEmail.split('@')[0] || 'Klant';
+    const cleanPhone = (phone || '').trim() || '-';
     const hashed = await hashPassword(password);
 
     if (isSupabaseConfigured) {
+      // Check if user already exists
+      try {
+        const { data: existing } = await supabase
+          .from('client_accounts')
+          .select('id, email')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (existing) {
+          throw new Error('Dit e-mailadres is al geregistreerd. Log a.u.b. in.');
+        }
+      } catch (checkErr: any) {
+        if (checkErr.message && checkErr.message.includes('al geregistreerd')) {
+          throw checkErr;
+        }
+      }
+
       // 1. Insert into client_accounts in Supabase
       const { data, error } = await supabase
         .from('client_accounts')
@@ -636,13 +653,16 @@ export const supabaseDataService = {
           phone: cleanPhone,
           password_hash: hashed,
           role: 'client',
+          wallet_balance: 0,
+          rides_count: 0,
+          rating: 5.0,
         })
         .select()
         .maybeSingle();
 
       if (error) {
         if (error.code === '23505') {
-          throw new Error('Er bestaat al een account met dit e-mailadres.');
+          throw new Error('Dit e-mailadres is al geregistreerd. Log a.u.b. in.');
         }
         console.warn('Supabase registerClient notice:', error.message);
       }
@@ -748,6 +768,112 @@ export const supabaseDataService = {
     }
 
     throw new Error('Geen account gevonden met dit e-mailadres. Maak a.u.b. eerst een account aan.');
+  },
+
+  // ── 7B. GOOGLE OAUTH AUTHENTICATION ──────────────────────────────────
+  async signInWithGoogle(redirectTo?: string) {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase is niet geconfigureerd.');
+    }
+
+    const targetUrl = redirectTo || (typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined);
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: targetUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
+      },
+    });
+
+    if (error) {
+      console.error('Supabase signInWithOAuth Google error:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  async handleGoogleUserSession(sessionUser: any) {
+    if (!sessionUser) return null;
+
+    const email = (sessionUser.email || '').trim().toLowerCase();
+    const fullName =
+      sessionUser.user_metadata?.full_name ||
+      sessionUser.user_metadata?.name ||
+      (email ? email.split('@')[0] : 'Klant');
+    const phone = sessionUser.user_metadata?.phone || '';
+
+    let profile: any = null;
+
+    if (isSupabaseConfigured && email) {
+      try {
+        const { data: existing } = await supabase
+          .from('client_accounts')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existing) {
+          profile = existing;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('client_accounts')
+            .insert({
+              full_name: fullName,
+              email: email,
+              phone: phone,
+              password_hash: 'google-oauth',
+              role: 'client',
+              wallet_balance: 0,
+              rides_count: 0,
+              rating: 5.0,
+            })
+            .select()
+            .maybeSingle();
+
+          if (insertErr) {
+            console.warn('Google client_accounts insert error:', insertErr);
+          }
+          profile = inserted;
+        }
+
+        // Initialize security settings if not present
+        try {
+          await supabase
+            .from('user_security_settings')
+            .upsert(
+              { user_email: email, two_factor_enabled: true, email_alerts: true },
+              { onConflict: 'user_email' }
+            );
+        } catch {}
+
+        // Register session for Google user
+        try {
+          await this.registerSession(email, {
+            device_name: 'Dit apparaat (Google Ingelogd)',
+            browser: 'Google OAuth',
+            location: 'Nederland',
+            is_current: true,
+          });
+        } catch {}
+      } catch (err) {
+        console.warn('Google user sync database error:', err);
+      }
+    }
+
+    return {
+      name: profile?.full_name || fullName,
+      email: profile?.email || email,
+      phone: profile?.phone || phone,
+      isLoggedIn: true,
+      balance: Number(profile?.wallet_balance) || 0,
+      ridesCount: Number(profile?.rides_count) || 0,
+      rating: Number(profile?.rating) || 5.0,
+    };
   },
 
   // ── 8. ADMIN AUTHENTICATION ──────────────────────────────────────────

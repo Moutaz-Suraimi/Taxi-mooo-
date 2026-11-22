@@ -7,6 +7,7 @@ import {
 import { supabaseDataService } from '../services/supabaseDataService';
 import { setClientSession, clearClientSession } from '../services/sessionSecurity';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../context/LanguageContext';
 
 // ─── Brand tokens (Main website palette) ──────────────────
 const NAVY   = '#001331';
@@ -33,6 +34,7 @@ interface AccountModalProps {
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+  const { language } = useLanguage();
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
       const s = localStorage.getItem('taximooo_user');
@@ -66,62 +68,28 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
 
-        const supaUser = session.user;
-        const googleName  = supaUser.user_metadata?.full_name || supaUser.user_metadata?.name || '';
-        const googleEmail = supaUser.email || '';
-        const googlePhone = supaUser.user_metadata?.phone || '';
-        const googleAvatar = supaUser.user_metadata?.avatar_url || '';
-
-        // Save or update client_accounts with real Google data
-        try {
-          const { data: existing } = await supabase
-            .from('client_accounts')
-            .select('*')
-            .eq('email', googleEmail)
-            .maybeSingle();
-
-          if (!existing) {
-            await supabase.from('client_accounts').insert({
-              full_name: googleName,
-              email: googleEmail,
-              phone: googlePhone,
-              password_hash: 'google-oauth',
-              role: 'client',
-            });
-          }
-        } catch (dbErr) {
-          console.warn('client_accounts upsert:', dbErr);
-        }
-
-        // Fetch full profile from client_accounts
-        const { data: profile } = await supabase
-          .from('client_accounts')
-          .select('*')
-          .eq('email', googleEmail)
-          .maybeSingle();
-
-        const authUser: AuthUser = {
-          name:       profile?.full_name   || googleName,
-          email:      profile?.email       || googleEmail,
-          phone:      profile?.phone       || googlePhone,
-          isLoggedIn: true,
-          balance:    Number(profile?.wallet_balance) || 0,
-          ridesCount: Number(profile?.rides_count)    || 0,
-          rating:     Number(profile?.rating)         || 5.0,
-        };
+        // Synchronize with database and get formatted client account
+        const authUser = await supabaseDataService.handleGoogleUserSession(session.user);
+        if (!authUser) return;
 
         localStorage.setItem('taximooo_user', JSON.stringify(authUser));
         setUser(authUser);
         setClientSession(authUser);
         setSuccessMessage(`Welkom, ${authUser.name}! Succesvol ingelogd via Google.`);
 
-        // Clear hash fragment left by OAuth redirect
+        // Clear hash or query fragment left by OAuth redirect
         if (window.location.hash.includes('access_token') ||
             window.location.hash.includes('error_description')) {
           window.history.replaceState(null, '', window.location.pathname);
         }
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
 
-        setTimeout(() => { onClose(); onLoginSuccess?.(); }, 900);
+        setTimeout(() => {
+          onClose();
+          onLoginSuccess?.();
+        }, 900);
       } catch (err) {
         console.warn('Google session check failed:', err);
       }
@@ -141,7 +109,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
 
     return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onClose, onLoginSuccess]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -166,22 +134,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!loginEmail.trim() || !loginPassword.trim()) {
-      setError('Vul a.u.b. alle velden in.');
+    const cleanEmail = loginEmail.trim();
+    if (!cleanEmail || !loginPassword.trim()) {
+      setError(language === 'en' ? 'Please fill in all fields.' : 'Vul a.u.b. alle velden in.');
       return;
     }
     setIsLoading(true);
     try {
-      const loggedUser = await supabaseDataService.loginClient(loginEmail, loginPassword);
+      const loggedUser = await supabaseDataService.loginClient(cleanEmail, loginPassword);
       setUser(loggedUser);
       setClientSession(loggedUser);
-      setSuccessMessage('Succesvol ingelogd!');
+      localStorage.setItem('taximooo_user', JSON.stringify(loggedUser));
+      setSuccessMessage(language === 'en' ? 'Successfully logged in!' : 'Succesvol ingelogd!');
       setTimeout(() => {
         onClose();
         onLoginSuccess?.();
       }, 700);
     } catch (err: any) {
-      setError(err.message || 'Inloggen mislukt. Controleer je gegevens.');
+      setError(err.message || (language === 'en' ? 'Login failed. Check your credentials.' : 'Inloggen mislukt. Controleer je gegevens.'));
     } finally {
       setIsLoading(false);
     }
@@ -190,39 +160,66 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!regName.trim() || !regEmail.trim() || !regPhone.trim() || !regPassword.trim()) {
-      setError('Vul a.u.b. alle verplichte velden in.');
+
+    const cleanEmail = regEmail.trim();
+    if (!cleanEmail) {
+      setError(language === 'en' ? 'Please enter a valid email address.' : 'Vul a.u.b. een geldig e-mailadres in.');
       return;
     }
-    if (regPassword.length < 6) {
-      setError('Het wachtwoord moet minimaal 6 tekens bevatten.');
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setError(language === 'en' ? 'Please enter a valid email address.' : 'Voer een geldig e-mailadres in.');
       return;
     }
-    if (regPassword !== regConfirmPassword) {
-      setError('Wachtwoorden komen niet overeen.');
+
+    if (!regPassword || regPassword.length < 4) {
+      setError(language === 'en' ? 'Password must be at least 4 characters.' : 'Het wachtwoord moet minimaal 4 tekens bevatten.');
       return;
     }
+
+    if (regConfirmPassword.trim() && regPassword !== regConfirmPassword.trim()) {
+      setError(language === 'en' ? 'Passwords do not match.' : 'Wachtwoorden komen niet overeen.');
+      return;
+    }
+
     if (!agreeTerms) {
-      setError('Je dient akkoord te gaan met de algemene voorwaarden.');
+      setError(language === 'en' ? 'You must agree to the terms and conditions.' : 'Je dient akkoord te gaan met de algemene voorwaarden.');
       return;
     }
+
+    const cleanName = regName.trim() || cleanEmail.split('@')[0];
+    const cleanPhone = regPhone.trim() || '-';
+
     setIsLoading(true);
     try {
       const newUser = await supabaseDataService.registerClient(
-        regName,
-        regEmail,
-        regPhone,
+        cleanName,
+        cleanEmail,
+        cleanPhone,
         regPassword
       );
       setUser(newUser);
       setClientSession(newUser);
-      setSuccessMessage('Account succesvol aangemaakt! Welkom bij Taxi mooo.');
+      localStorage.setItem('taximooo_user', JSON.stringify(newUser));
+      setSuccessMessage(
+        language === 'en'
+          ? 'Account successfully created! Welcome to Taxi mooo.'
+          : 'Account succesvol aangemaakt! Welkom bij Taxi mooo.'
+      );
       setTimeout(() => {
         onClose();
         onLoginSuccess?.();
-      }, 900);
+      }, 800);
     } catch (err: any) {
-      setError(err.message || 'Registratie mislukt. Probeer het opnieuw.');
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('al een account') || msg.includes('al geregistreerd') || msg.includes('already registered')) {
+        setError(
+          language === 'en'
+            ? 'This email is already registered. Please log in.'
+            : 'Dit e-mailadres is al geregistreerd. Log a.u.b. in.'
+        );
+      } else {
+        setError(err.message || (language === 'en' ? 'Registration failed. Please try again.' : 'Registratie mislukt. Probeer het opnieuw.'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -232,20 +229,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
     setIsLoading(true);
     setError('');
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.href,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      });
-      if (oauthError) throw oauthError;
-      // Supabase will redirect the browser to Google — no further action needed here
+      await supabaseDataService.signInWithGoogle();
+      // Supabase will redirect the browser to Google OAuth consent
     } catch (err: any) {
-      setError(err.message || 'Google login mislukt. Probeer het opnieuw.');
+      console.error('Google Sign-In failed:', err);
+      const msg = (err?.message || '').toLowerCase();
+      if (msg.includes('provider is not enabled') || msg.includes('unsupported provider')) {
+        setError('Google login is nog niet ingeschakeld in Supabase. Activeer de Google Provider in het Supabase Dashboard (Authentication > Providers > Google).');
+      } else {
+        setError(err?.message || 'Google login mislukt. Probeer het opnieuw.');
+      }
       setIsLoading(false);
     }
   };
@@ -514,20 +507,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                   </div>
                   <h2 className="text-3xl sm:text-[38px] font-black text-[#07152B] tracking-tight leading-none">
                     {authMode === 'login' ? (
-                      <>
-                        Welkom <span className="text-[#00255c]">terug</span>
-                      </>
+                      language === 'en' ? (
+                        <>Welcome <span className="text-[#00255c]">back</span></>
+                      ) : (
+                        <>Welkom <span className="text-[#00255c]">terug</span></>
+                      )
                     ) : (
-                      <>
-                        Account <span className="text-[#00255c]">aanmaken</span>
-                      </>
+                      language === 'en' ? (
+                        <>Create <span className="text-[#00255c]">account</span></>
+                      ) : (
+                        <>Account <span className="text-[#00255c]">aanmaken</span></>
+                      )
                     )}
                   </h2>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 font-medium leading-relaxed pl-0.5">
                   {authMode === 'login'
-                    ? 'Log in om je ritten, facturen en saldo te beheren'
-                    : 'Registreer eenvoudig en ontvang direct €10 welkomsttegoed'}
+                    ? (language === 'en' ? 'Log in to manage your rides, invoices and balance' : 'Log in om je ritten, facturen en saldo te beheren')
+                    : (language === 'en' ? 'Register easily and receive €10 welcome credit' : 'Registreer eenvoudig en ontvang direct €10 welkomsttegoed')}
                 </p>
               </div>
 
@@ -543,7 +540,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                   }`}
                 >
                   <LogIn className={`w-4 h-4 ${authMode === 'login' ? 'text-[#FFB800]' : 'text-slate-500'}`} />
-                  <span>Inloggen</span>
+                  <span>{language === 'en' ? 'Log In' : 'Inloggen'}</span>
                 </button>
 
                 <button
@@ -556,7 +553,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                   }`}
                 >
                   <UserPlus className={`w-4 h-4 ${authMode === 'register' ? 'text-[#FFB800]' : 'text-slate-500'}`} />
-                  <span>Registreren</span>
+                  <span>{language === 'en' ? 'Register' : 'Registreren'}</span>
                 </button>
               </div>
 
@@ -593,7 +590,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
-                    <span>{authMode === 'login' ? 'Inloggen met Google' : 'Aanmelden met Google'}</span>
+                    <span>
+                      {authMode === 'login'
+                        ? (language === 'en' ? 'Sign in with Google' : 'Inloggen met Google')
+                        : (language === 'en' ? 'Sign up with Google' : 'Aanmelden met Google')}
+                    </span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition hidden sm:block" />
                 </button>
@@ -602,7 +603,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                 <div className="relative flex items-center justify-center py-1">
                   <div className="w-full border-t border-slate-200" />
                   <span className="absolute bg-[#EBF2FC] text-[#00255c] border border-[#D4E2F4] px-4 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider">
-                    OF VIA E-MAIL
+                    {language === 'en' ? 'OR VIA EMAIL' : 'OF VIA E-MAIL'}
                   </span>
                 </div>
 
@@ -613,7 +614,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                     <div>
                       <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
                         <Mail className="w-4 h-4 text-[#00255c]" />
-                        <span>E-mailadres</span>
+                        <span>{language === 'en' ? 'Email address' : 'E-mailadres'}</span>
                       </label>
                       <div className="flex items-center gap-3 px-4 py-3.5 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#00255c]/10 transition shadow-inner">
                         <Mail className="w-4 h-4 text-slate-400 shrink-0" />
@@ -633,14 +634,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800">
                           <Lock className="w-4 h-4 text-[#00255c]" />
-                          <span>Wachtwoord</span>
+                          <span>{language === 'en' ? 'Password' : 'Wachtwoord'}</span>
                         </label>
                         <button
                           type="button"
-                          onClick={() => alert('Er is een wachtwoord-herstelink verstuurd naar je e-mail!')}
+                          onClick={() => alert(language === 'en' ? 'A password reset link has been sent to your email!' : 'Er is een wachtwoord-herstelink verstuurd naar je e-mail!')}
                           className="text-xs sm:text-sm font-bold text-[#00255c] hover:text-[#FFB800] hover:underline cursor-pointer transition-colors"
                         >
-                          Wachtwoord vergeten?
+                          {language === 'en' ? 'Forgot password?' : 'Wachtwoord vergeten?'}
                         </button>
                       </div>
                       <div className="flex items-center gap-3 px-4 py-3.5 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#00255c]/10 transition shadow-inner">
@@ -672,10 +673,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       style={{ background: BRAND_BUTTON_GRADIENT }}
                     >
                       {isLoading ? (
-                        'Bezig met inloggen...'
+                        language === 'en' ? 'Logging in...' : 'Bezig met inloggen...'
                       ) : (
                         <>
-                          <span>Inloggen op mijn account</span>
+                          <span>{language === 'en' ? 'Log In to My Account' : 'Inloggen op mijn account'}</span>
                           <ArrowRight className="w-5 h-5 text-[#FFB800] group-hover:translate-x-0.5 transition-transform" />
                         </>
                       )}
@@ -683,33 +684,33 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
 
                     {/* Footer link to register */}
                     <div className="pt-2 text-center text-xs sm:text-sm text-gray-500">
-                      Nog geen account?{' '}
+                      {language === 'en' ? "Don't have an account?" : 'Nog geen account?'}{' '}
                       <button
                         type="button"
                         onClick={() => switchMode('register')}
                         className="font-extrabold text-[#00255c] hover:text-[#FFB800] hover:underline cursor-pointer transition-colors"
                       >
-                        Registreer hier gratis
+                        {language === 'en' ? 'Register here for free' : 'Registreer hier gratis'}
                       </button>
                     </div>
                   </form>
                 ) : (
                   /* ── REGISTER FORM ── */
                   <form onSubmit={handleRegisterSubmit} className="space-y-3.5 pt-1">
-                    {/* Naam */}
+                    {/* Naam (Optioneel) */}
                     <div>
                       <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
                         <User className="w-4 h-4 text-[#00255c]" />
-                        <span>Volledige naam</span>
+                        <span>{language === 'en' ? 'Full name' : 'Volledige naam'}</span>
+                        <span className="text-[11px] font-normal text-slate-400">({language === 'en' ? 'optional' : 'optioneel'})</span>
                       </label>
                       <div className="flex items-center gap-3 px-4 py-3 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#00255c]/10 transition shadow-inner">
                         <User className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
                           type="text"
-                          required
                           value={regName}
                           onChange={(e) => setRegName(e.target.value)}
-                          placeholder="bijv. Moutaz Wael"
+                          placeholder={language === 'en' ? 'e.g. Moutaz Wael' : 'bijv. Moutaz Wael'}
                           className="w-full bg-transparent text-sm text-[#07152B] placeholder-slate-400 focus:outline-none"
                         />
                       </div>
@@ -720,7 +721,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       <div>
                         <label className="flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
                           <Mail className="w-3.5 h-3.5 text-[#00255c]" />
-                          <span>E-mailadres</span>
+                          <span>{language === 'en' ? 'Email address' : 'E-mailadres'}</span>
+                          <span className="text-red-500">*</span>
                         </label>
                         <div className="flex items-center gap-2.5 px-3.5 py-3 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white transition shadow-inner">
                           <input
@@ -728,7 +730,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                             required
                             value={regEmail}
                             onChange={(e) => setRegEmail(e.target.value)}
-                            placeholder="naam@email.nl"
+                            placeholder={language === 'en' ? 'name@email.com' : 'naam@email.nl'}
                             className="w-full bg-transparent text-xs sm:text-sm text-[#07152B] placeholder-slate-400 focus:outline-none"
                           />
                         </div>
@@ -737,12 +739,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       <div>
                         <label className="flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
                           <Phone className="w-3.5 h-3.5 text-[#00255c]" />
-                          <span>Telefoonnummer</span>
+                          <span>{language === 'en' ? 'Phone number' : 'Telefoonnummer'}</span>
+                          <span className="text-[11px] font-normal text-slate-400">({language === 'en' ? 'optional' : 'optioneel'})</span>
                         </label>
                         <div className="flex items-center gap-2.5 px-3.5 py-3 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white transition shadow-inner">
                           <input
                             type="tel"
-                            required
                             value={regPhone}
                             onChange={(e) => setRegPhone(e.target.value)}
                             placeholder="+31 6 41212427"
@@ -755,7 +757,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                     {/* Wachtwoorden */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-800 mb-1">Wachtwoord</label>
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          {language === 'en' ? 'Password' : 'Wachtwoord'}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
                         <div className="flex items-center gap-2.5 px-3.5 py-3 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white transition shadow-inner">
                           <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <input
@@ -763,22 +768,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                             required
                             value={regPassword}
                             onChange={(e) => setRegPassword(e.target.value)}
-                            placeholder="Min. 6 tekens"
+                            placeholder={language === 'en' ? 'Min. 4 characters' : 'Min. 4 tekens'}
                             className="w-full bg-transparent text-xs sm:text-sm text-[#07152B] placeholder-slate-400 focus:outline-none"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-800 mb-1">Bevestig wachtwoord</label>
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          {language === 'en' ? 'Confirm password' : 'Bevestig wachtwoord'}
+                          <span className="text-[11px] font-normal text-slate-400 ml-1">({language === 'en' ? 'optional' : 'optioneel'})</span>
+                        </label>
                         <div className="flex items-center gap-2.5 px-3.5 py-3 bg-[#F6F7FB] border border-[#E2E8F0] rounded-2xl focus-within:border-[#00255c] focus-within:bg-white transition shadow-inner">
                           <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <input
                             type={showRegPassword ? 'text' : 'password'}
-                            required
                             value={regConfirmPassword}
                             onChange={(e) => setRegConfirmPassword(e.target.value)}
-                            placeholder="Herhaal wachtwoord"
+                            placeholder={language === 'en' ? 'Repeat password' : 'Herhaal wachtwoord'}
                             className="w-full bg-transparent text-xs sm:text-sm text-[#07152B] placeholder-slate-400 focus:outline-none"
                           />
                         </div>
@@ -791,7 +798,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                         onClick={() => setShowRegPassword(!showRegPassword)}
                         className="text-[#00255c] hover:text-[#FFB800] font-bold hover:underline cursor-pointer transition-colors"
                       >
-                        {showRegPassword ? 'Verberg wachtwoord' : 'Toon wachtwoord'}
+                        {showRegPassword
+                          ? (language === 'en' ? 'Hide password' : 'Verberg wachtwoord')
+                          : (language === 'en' ? 'Show password' : 'Toon wachtwoord')}
                       </button>
                     </div>
 
@@ -804,15 +813,31 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                         className="w-4 h-4 rounded mt-0.5 accent-[#001331]"
                       />
                       <span>
-                        Ik ga akkoord met de{' '}
-                        <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
-                          Algemene Voorwaarden
-                        </span>{' '}
-                        en het{' '}
-                        <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
-                          Privacybeleid
-                        </span>{' '}
-                        van Taxi mooo.
+                        {language === 'en' ? (
+                          <>
+                            I agree to the{' '}
+                            <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
+                              Terms and Conditions
+                            </span>{' '}
+                            and{' '}
+                            <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
+                              Privacy Policy
+                            </span>{' '}
+                            of Taxi mooo.
+                          </>
+                        ) : (
+                          <>
+                            Ik ga akkoord met de{' '}
+                            <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
+                              Algemene Voorwaarden
+                            </span>{' '}
+                            en het{' '}
+                            <span className="font-bold underline text-[#00255c] hover:text-[#FFB800] transition-colors">
+                              Privacybeleid
+                            </span>{' '}
+                            van Taxi mooo.
+                          </>
+                        )}
                       </span>
                     </label>
 
@@ -824,10 +849,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
                       style={{ background: BRAND_BUTTON_GRADIENT }}
                     >
                       {isLoading ? (
-                        'Account aanmaken...'
+                        language === 'en' ? 'Creating account...' : 'Account aanmaken...'
                       ) : (
                         <>
-                          <span>Account aanmaken & Inloggen</span>
+                          <span>{language === 'en' ? 'Create My Account' : 'Account aanmaken & Inloggen'}</span>
                           <ArrowRight className="w-5 h-5 text-[#FFB800] group-hover:translate-x-0.5 transition-transform" />
                         </>
                       )}
@@ -835,13 +860,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onL
 
                     {/* Footer link to login */}
                     <div className="pt-2 text-center text-xs sm:text-sm text-gray-500">
-                      Al een account?{' '}
+                      {language === 'en' ? 'Already have an account?' : 'Al een account?'}{' '}
                       <button
                         type="button"
                         onClick={() => switchMode('login')}
                         className="font-extrabold text-[#00255c] hover:text-[#FFB800] hover:underline cursor-pointer transition-colors"
                       >
-                        Log hier direct in
+                        {language === 'en' ? 'Log in here' : 'Log hier direct in'}
                       </button>
                     </div>
                   </form>

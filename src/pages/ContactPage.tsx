@@ -12,6 +12,7 @@ import {
   Building,
 } from 'lucide-react';
 import { supabaseDataService } from '../services/supabaseDataService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ContactPageProps {
   onNavigateHome: () => void;
@@ -22,10 +23,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   onNavigateHome,
   onNavigateToBooking,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [subject, setSubject] = useState('Algemene vraag');
+  const [subject, setSubject] = useState(t('contact.page.opt1'));
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -50,7 +52,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
     setName('');
     setEmail('');
     setPhone('');
-    setSubject('Algemene vraag');
+    setSubject(t('contact.page.opt1'));
     setMessage('');
     setSubmitted(false);
   };
@@ -67,25 +69,24 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               onClick={onNavigateHome}
               className="hover:text-[#FFB800] transition cursor-pointer flex items-center gap-1"
             >
-              Home
+              {t('nav.home')}
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[#FFB800] font-bold">Contact</span>
+            <span className="text-[#FFB800] font-bold">{t('contact.page.breadcrumb')}</span>
           </div>
 
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-[#FFB800] text-xs font-extrabold uppercase tracking-wider backdrop-blur-md border border-white/10">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Contact & Klantenservice</span>
+              <span>{t('contact.page.badge')}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              We staan 24/7 voor je klaar
+              {t('contact.page.h1')}
             </h1>
 
             <p className="text-base sm:text-lg text-blue-100/90 leading-relaxed font-normal">
-              Heb je een vraag over een geplande rit, wil je direct een taxi bestellen, of zoek je een
-              zakelijke partner voor directievervoer? Neem direct contact op met onze 24-uurs dispatch centrale.
+              {t('contact.page.sub')}
             </p>
           </div>
         </div>
@@ -105,15 +106,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <Phone className="w-6 h-6" />
               </div>
               <div className="text-xs uppercase font-extrabold tracking-wider text-gray-500 mb-1">
-                24/7 Centrale
+                {t('contact.page.central24')}
               </div>
               <div className="text-lg font-black text-[#07152B] group-hover:text-[#00255c] transition-colors">
                 +31 6 41212427
               </div>
-              <p className="text-xs text-gray-500 mt-2">Direct een dispatcher aan de lijn</p>
+              <p className="text-xs text-gray-500 mt-2">{t('contact.page.hqDesc')}</p>
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100 text-xs font-bold text-[#00255c]">
-              Bel nu direct →
+              {t('contact.page.callNow')}
             </div>
           </a>
 
@@ -134,10 +135,10 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               <div className="text-lg font-black text-[#07152B] group-hover:text-green-700 transition-colors">
                 +31 6 41212427
               </div>
-              <p className="text-xs text-gray-500 mt-2">Binnen 2 minuten reactie</p>
+              <p className="text-xs text-gray-500 mt-2">{t('contact.page.replyTime')}</p>
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100 text-xs font-bold text-green-700">
-              Start WhatsApp chat →
+              {t('contact.page.startChat')}
             </div>
           </a>
 
@@ -151,15 +152,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <Mail className="w-6 h-6" />
               </div>
               <div className="text-xs uppercase font-extrabold tracking-wider text-gray-500 mb-1">
-                E-mail Contact
+                {t('contact.page.emailContact')}
               </div>
               <div className="text-lg font-black text-[#07152B] group-hover:text-[#00255c] transition-colors truncate">
                 info@taximooo.nl
               </div>
-              <p className="text-xs text-gray-500 mt-2">Binnen 1 uur inhoudelijk antwoord</p>
+              <p className="text-xs text-gray-500 mt-2">{t('contact.page.emailReply')}</p>
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100 text-xs font-bold text-[#00255c]">
-              Stuur een e-mail →
+              {t('contact.page.sendEmail')}
             </div>
           </a>
 
@@ -170,11 +171,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <MapPin className="w-6 h-6" />
               </div>
               <div className="text-xs uppercase font-extrabold tracking-wider text-gray-500 mb-1">
-                Hoofdkantoor
+                {t('contact.page.hq')}
               </div>
               <div className="text-sm font-bold text-[#07152B]">Corelia de Langestraat 208</div>
               <div className="text-xs text-gray-500">2037 NR Haarlem</div>
-              <p className="text-xs text-gray-500 mt-2">Gevestigd in Haarlem, 24/7 actief in heel Nederland</p>
+              <p className="text-xs text-gray-500 mt-2">{t('contact.page.hqDesc')}</p>
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
               Nederland
@@ -188,13 +189,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({
           <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm">
             <div className="space-y-2 mb-6">
               <span className="px-3 py-1 rounded-full bg-[#EBF2FC] text-[#00255c] text-xs font-extrabold uppercase tracking-wider">
-                Stuur een bericht
+                {t('contact.page.sendMsg')}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-[#07152B]">
-                Waarmee kunnen we je helpen?
+                {t('contact.page.formTitle')}
               </h2>
               <p className="text-xs sm:text-sm text-gray-500">
-                Vul het onderstaande formulier in en ons team neemt binnen enkele minuten contact met je op.
+                {t('contact.page.formSub')}
               </p>
             </div>
 
@@ -203,16 +204,16 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
-                <h3 className="text-2xl font-black text-[#07152B]">Bedankt voor je bericht!</h3>
+                <h3 className="text-2xl font-black text-[#07152B]">{t('contact.page.thankYou')}</h3>
                 <p className="text-sm text-gray-600 max-w-md mx-auto">
-                  We hebben je vraag goed ontvangen. Onze centrale neemt zo spoedig mogelijk contact met je op via e-mail of telefoon.
+                  {t('contact.page.msgReceived')}
                 </p>
                 <div className="pt-2">
                   <button
                     onClick={handleReset}
                     className="px-6 py-2.5 rounded-full bg-[#001331] text-white font-bold text-xs hover:bg-[#00255c] transition cursor-pointer"
                   >
-                    Nog een bericht versturen
+                    {t('contact.page.sendAnother')}
                   </button>
                 </div>
               </div>
@@ -221,12 +222,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#07152B] mb-1.5">
-                      Volledige naam <span className="text-red-500">*</span>
+                      {t('contact.page.fullName')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="bijv. Jan de Vries"
+                      placeholder={t('contact.page.namePlaceholder')}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -235,12 +236,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-[#07152B] mb-1.5">
-                      Telefoonnummer <span className="text-red-500">*</span>
+                      {t('contact.page.phone')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       required
-                      placeholder="bijv. 06 12345678"
+                      placeholder={t('contact.page.phonePlaceholder')}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -251,12 +252,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#07152B] mb-1.5">
-                      E-mailadres <span className="text-red-500">*</span>
+                      {t('contact.page.email')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
                       required
-                      placeholder="bijv. jan@example.nl"
+                      placeholder={t('contact.page.emailPlaceholder')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -265,31 +266,31 @@ export const ContactPage: React.FC<ContactPageProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-[#07152B] mb-1.5">
-                      Onderwerp
+                      {t('contact.page.subject')}
                     </label>
                     <select
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c] bg-white cursor-pointer"
                     >
-                      <option value="Algemene vraag">Algemene vraag</option>
-                      <option value="Rit reservering of wijziging">Rit reservering of wijziging</option>
-                      <option value="Schiphol transfer">Schiphol transfer</option>
-                      <option value="Zakelijk account & factuur">Zakelijk account & factuur</option>
-                      <option value="Verloren voorwerp">Verloren voorwerp</option>
-                      <option value="Klacht of compliment">Klacht of compliment</option>
+                      <option value={t('contact.page.opt1')}>{t('contact.page.opt1')}</option>
+                      <option value={t('contact.page.opt2')}>{t('contact.page.opt2')}</option>
+                      <option value={t('contact.page.opt3')}>{t('contact.page.opt3')}</option>
+                      <option value={t('contact.page.opt4')}>{t('contact.page.opt4')}</option>
+                      <option value={t('contact.page.opt5')}>{t('contact.page.opt5')}</option>
+                      <option value={t('contact.page.opt6')}>{t('contact.page.opt6')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-[#07152B] mb-1.5">
-                    Je bericht of opmerking <span className="text-red-500">*</span>
+                    {t('contact.page.msgLabel')} <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={5}
-                    placeholder="Beschrijf je vraag, datum, gewenste ophaallocatie of speciale wensen..."
+                    placeholder={t('contact.page.msgPlaceholder')}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -303,7 +304,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                     className="w-full py-4 rounded-xl bg-[#001331] hover:bg-[#00255c] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Send className="w-4 h-4 text-[#FFB800]" />
-                    <span>{isSubmitting ? 'Verzenden...' : 'Verstuur bericht naar centrale'}</span>
+                    <span>{isSubmitting ? t('contact.page.sending') : t('contact.page.sendBtn')}</span>
                   </button>
                 </div>
               </form>
@@ -319,23 +320,23 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-[#07152B]">Openingstijden & Dispatch</div>
-                  <div className="text-xs text-green-700 font-bold">● Nu Geopend (24/7/365)</div>
+                  <div className="text-sm font-bold text-[#07152B]">{t('contact.page.openingHours')}</div>
+                  <div className="text-xs text-green-700 font-bold">{t('contact.page.openNow')}</div>
                 </div>
               </div>
 
               <div className="space-y-2 text-xs sm:text-sm text-gray-600 border-t border-gray-200 pt-3">
                 <div className="flex justify-between">
-                  <span>Maandag - Vrijdag:</span>
-                  <span className="font-bold text-[#07152B]">24 uur per dag</span>
+                  <span>{t('contact.page.monFri')}</span>
+                  <span className="font-bold text-[#07152B]">{t('contact.page.hours24')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Zaterdag - Zondag:</span>
-                  <span className="font-bold text-[#07152B]">24 uur per dag</span>
+                  <span>{t('contact.page.satSun')}</span>
+                  <span className="font-bold text-[#07152B]">{t('contact.page.hours24')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Feestdagen:</span>
-                  <span className="font-bold text-[#07152B]">24 uur per dag</span>
+                  <span>{t('contact.page.holidays')}</span>
+                  <span className="font-bold text-[#07152B]">{t('contact.page.hours24')}</span>
                 </div>
               </div>
             </div>
@@ -344,28 +345,28 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-3">
               <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#00255c]">
                 <Building className="w-4 h-4" />
-                <span>Bedrijfsgegevens & Registraties</span>
+                <span>{t('contact.page.companyInfo')}</span>
               </div>
 
               <div className="space-y-2.5 text-xs text-gray-600 pt-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Handelsnaam:</span>
+                  <span className="text-gray-400">{t('contact.page.tradeName')}</span>
                   <span className="font-semibold text-[#07152B]">Taxi mooo B.V.</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">KvK-nummer:</span>
+                  <span className="text-gray-400">{t('contact.page.kvk')}</span>
                   <span className="font-mono font-semibold text-[#07152B]">84920192</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Btw-nummer:</span>
+                  <span className="text-gray-400">{t('contact.page.vat')}</span>
                   <span className="font-mono font-semibold text-[#07152B]">NL863492019B01</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">TX-Keurmerk:</span>
-                  <span className="font-semibold text-green-700">Erkend & Gecertificeerd</span>
+                  <span className="text-gray-400">{t('contact.page.txLabel')}</span>
+                  <span className="font-semibold text-green-700">{t('contact.page.txValue')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Vergunning:</span>
+                  <span className="text-gray-400">{t('contact.page.license')}</span>
                   <span className="font-semibold text-[#07152B]">Ministerie van I&W</span>
                 </div>
               </div>
@@ -376,18 +377,18 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               <div className="flex items-center gap-3">
                 <MapPin className="w-6 h-6 text-[#FFB800]" />
                 <div>
-                  <h3 className="font-bold text-base">Centrale in Haarlem</h3>
+                  <h3 className="font-bold text-base">{t('contact.page.locationTitle')}</h3>
                   <p className="text-xs text-blue-200">Corelia de Langestraat 208, 2037 NR Haarlem</p>
                 </div>
               </div>
               <p className="text-xs text-blue-100 leading-relaxed">
-                Vanuit onze vestiging in Haarlem coördineren we 24/7 ritten door heel Noord-Holland, Zuid-Holland, Utrecht en de rest van Nederland.
+                {t('contact.page.locationDesc')}
               </p>
               <button
                 onClick={onNavigateToBooking}
                 className="w-full py-3 rounded-xl bg-[#FFB800] hover:bg-yellow-400 text-[#001331] font-black text-xs uppercase tracking-wider transition cursor-pointer shadow-md"
               >
-                Direct een rit berekenen & boeken
+                {t('contact.page.calcBtn')}
               </button>
             </div>
           </div>

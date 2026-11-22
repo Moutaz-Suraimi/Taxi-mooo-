@@ -51,7 +51,7 @@ interface TaxiBookingFormProps {
 }
 
 export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFare }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [stops, setStops] = useState<string[]>([]);
@@ -174,16 +174,25 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
 
   const handleSelectVehicle = (type: 'klein' | 'groot') => {
     setVehicleType(type);
-    const max = type === 'klein' ? 3 : 5;
+    const max = type === 'klein' ? 4 : 7;
     if (passengers > max) {
       setPassengers(max);
     }
   };
 
   const handleIncreasePassengers = () => {
-    const max = vehicleType === 'klein' ? 3 : 5;
-    if (passengers < max) {
-      setPassengers(passengers + 1);
+    if (vehicleType === 'klein') {
+      if (passengers < 4) {
+        setPassengers(passengers + 1);
+      } else {
+        // Auto upgrade to Grote auto when increasing above 4 passengers
+        setVehicleType('groot');
+        setPassengers(5);
+      }
+    } else {
+      if (passengers < 7) {
+        setPassengers(passengers + 1);
+      }
     }
   };
 
@@ -511,39 +520,40 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Option 1: Kleine auto */}
+              {/* Option 1: Kleine auto (Sedan 1-4 pers.) */}
               <div
                 onClick={() => handleSelectVehicle('klein')}
-                className={`p-4 sm:p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
                   vehicleType === 'klein'
-                    ? 'border-[#00255c] bg-[#EBF2FC] shadow-sm ring-2 ring-[#00255c]/10'
-                    : 'border-gray-200 hover:border-slate-200 bg-[#FAF8FE]'
+                    ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/10'
+                    : 'border-gray-200 hover:border-slate-300 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="flex items-center gap-3.5">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
-                      vehicleType === 'klein'
-                        ? 'bg-[#00255c] text-[#FFD500]'
-                        : 'bg-blue-100 text-[#00255c]'
-                    }`}
-                  >
-                    <Car className="w-6 h-6" />
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-sm">
+                    <img
+                      src="/chauffeur-mercedes-web.jpg"
+                      alt="Sedan"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-[#001331]/90 text-[#FFD500] text-[9px] font-bold rounded">
+                      1–4
+                    </span>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-base text-[#07152B]">{t('booking.smallCar')}</span>
+                      <span className="font-extrabold text-sm sm:text-base text-[#07152B] truncate">{t('booking.smallCar')}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-xs font-bold">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-[11px] font-bold">
                         {t('booking.smallCarCapacity')}
                       </span>
-                      <span className="text-xs text-gray-500">{t('booking.mercedesSedan')}</span>
+                      <span className="text-[11px] text-gray-500 truncate">{t('booking.mercedesSedan')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center pl-2">
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
                       vehicleType === 'klein'
@@ -556,39 +566,40 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                 </div>
               </div>
 
-              {/* Option 2: Grote auto */}
+              {/* Option 2: Grote auto (Taxibus 1-7 pers.) */}
               <div
                 onClick={() => handleSelectVehicle('groot')}
-                className={`p-4 sm:p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
                   vehicleType === 'groot'
-                    ? 'border-[#00255c] bg-[#EBF2FC] shadow-sm ring-2 ring-[#00255c]/10'
-                    : 'border-gray-200 hover:border-slate-200 bg-[#FAF8FE]'
+                    ? 'border-[#00255c] bg-[#EBF2FC] shadow-md ring-2 ring-[#00255c]/10'
+                    : 'border-gray-200 hover:border-slate-300 bg-white hover:bg-slate-50'
                 }`}
               >
-                <div className="flex items-center gap-3.5">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
-                      vehicleType === 'groot'
-                        ? 'bg-[#00255c] text-[#FFD500]'
-                        : 'bg-blue-100 text-[#00255c]'
-                    }`}
-                  >
-                    <Users className="w-6 h-6" />
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+                    <img
+                      src="/grote-auto.png"
+                      alt="Grote auto"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-0.5"
+                    />
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-[#001331]/90 text-[#FFD500] text-[9px] font-bold rounded">
+                      1–7
+                    </span>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-base text-[#07152B]">{t('booking.largeCar')}</span>
+                      <span className="font-extrabold text-sm sm:text-base text-[#07152B] truncate">{t('booking.largeCar')}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-xs font-bold">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[#00255c] text-[11px] font-bold">
                         {t('booking.largeCarCapacity')}
                       </span>
-                      <span className="text-xs text-gray-500">{t('booking.mercedesVan')}</span>
+                      <span className="text-[11px] text-gray-500 truncate">{t('booking.mercedesVan')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center pl-2">
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
                       vehicleType === 'groot'
@@ -599,6 +610,54 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                     {vehicleType === 'groot' && <CheckCircle2 className="w-4 h-4 text-[#FFD500]" />}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* ── Live Selected Vehicle Preview Card ── */}
+            <div className="mt-3 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#001331] via-[#001e47] to-[#00255c] text-white flex flex-col sm:flex-row items-center gap-4 border border-[#FFB800]/30 shadow-lg animate-in fade-in duration-200">
+              <div className="relative w-full sm:w-36 h-24 rounded-xl overflow-hidden shrink-0 border border-white/20 bg-white/10 flex items-center justify-center">
+                <img
+                  src={vehicleType === 'klein' ? '/chauffeur-mercedes-web.jpg' : '/grote-auto.png'}
+                  alt={vehicleType === 'klein' ? 'Mercedes E-Class Sedan' : 'Grote auto Mercedes V-Class'}
+                  className={`w-full h-full ${vehicleType === 'klein' ? 'object-cover' : 'object-contain p-1'}`}
+                />
+                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-[#FFB800] text-[#001331] text-[10px] font-black rounded-md shadow">
+                  {vehicleType === 'klein'
+                    ? (language === 'ar' ? '1–4 ركاب' : language === 'es' ? '1–4 Pasajeros' : language === 'en' ? '1–4 Passengers' : '1–4 Passagiers')
+                    : (language === 'ar' ? '1–7 ركاب' : language === 'es' ? '1–7 Pasajeros' : language === 'en' ? '1–7 Passengers' : '1–7 Passagiers')}
+                </span>
+              </div>
+              <div className="flex-1 w-full text-start">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-[#FFB800] uppercase tracking-wider">
+                    {vehicleType === 'klein'
+                      ? (language === 'ar' ? 'السيارة المختارة: سيدان فاخرة' : language === 'es' ? 'Elegido: Sedán de Lujo' : language === 'en' ? 'Selected: Luxury Sedan' : 'Gekozen: Luxe Sedan')
+                      : (language === 'ar' ? 'السيارة المختارة: باص وفان عائلي' : language === 'es' ? 'Elegido: Minibús Espacioso' : language === 'en' ? 'Selected: Spacious Van' : 'Gekozen: Ruime Taxibus')}
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/90">
+                    {vehicleType === 'klein' ? '€2.39 / km' : '€3.04 / km'}
+                  </span>
+                </div>
+                <h4 className="text-base font-black text-white mt-0.5">
+                  {vehicleType === 'klein' ? 'Mercedes-Benz E-Class Sedan' : 'Mercedes-Benz V-Class Taxibus'}
+                </h4>
+                <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                  {vehicleType === 'klein'
+                    ? (language === 'ar'
+                        ? 'مثالية لعدد 1 حتى 4 ركاب مع الحقائب. مقاعد جلدية مريحة، تكييف متكامل وأعلى درجات الراحة.'
+                        : language === 'es'
+                        ? 'Ideal para 1 a 4 personas con equipaje. Tapicería de cuero, aire acondicionado y gran confort.'
+                        : language === 'en'
+                        ? 'Ideal for 1 to 4 persons with luggage. Leather seats, air conditioning and top comfort.'
+                        : 'Uitermate geschikt voor 1 tot 4 personen met koffers. Luxe lederen bekleding, airconditioning en uiterst comfortabel.')
+                    : (language === 'ar'
+                        ? 'نقل جماعي وعائلي واسع حتى 7 أشخاص مع مساحة شحن رحبة لجميع الحقائب والأمتعة.'
+                        : language === 'es'
+                        ? 'Transporte espacioso de grupos hasta 7 personas con amplio espacio para maletas.'
+                        : language === 'en'
+                        ? 'Spacious group transport for up to 7 persons with generous luggage space.'
+                        : 'Ruim en comfortabel groepsvervoer tot 7 personen met royale bagageruimte voor alle koffers en tassen.')}
+                </p>
               </div>
             </div>
           </div>
@@ -645,32 +704,63 @@ export const TaxiBookingForm: React.FC<TaxiBookingFormProps> = ({ onCalculateFar
                   <Users className="w-4 h-4 text-[#0B2559]" />
                   <span>{t('booking.passengersCount')}</span>
                 </div>
-                <span className="text-[11px] font-semibold text-[#0B2559]">
+                <span className="text-[11px] font-bold text-[#00255c] bg-[#EBF2FC] px-2 py-0.5 rounded-md border border-[#D4E2F4]">
                   {vehicleType === 'klein' ? t('booking.max3') : t('booking.max5')}
                 </span>
               </div>
-              <div className="flex items-center border border-[#D4E2F4] rounded-xl bg-[#FAF8FE] w-fit p-1 mt-1">
-                <button
-                  type="button"
-                  onClick={handleDecreasePassengers}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={passengers <= 1}
-                  aria-label="Reiziger verminderen"
-                >
-                  –
-                </button>
-                <span className="w-10 text-center font-bold text-base text-[#07152B]">
-                  {passengers}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleIncreasePassengers}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={passengers >= (vehicleType === 'klein' ? 3 : 5)}
-                  aria-label="Reiziger toevoegen"
-                >
-                  +
-                </button>
+
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {/* Stepper (- / +) */}
+                <div className="flex items-center border border-[#D4E2F4] rounded-xl bg-[#FAF8FE] p-1">
+                  <button
+                    type="button"
+                    onClick={handleDecreasePassengers}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={passengers <= 1}
+                    aria-label="Reiziger verminderen"
+                  >
+                    –
+                  </button>
+                  <span className="w-8 text-center font-black text-base text-[#07152B]">
+                    {passengers}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleIncreasePassengers}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#00255c] hover:bg-white hover:shadow-xs transition font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={passengers >= 7}
+                    aria-label="Reiziger toevoegen"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Quick Passenger Selector Pills (1 to 7) */}
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5, 6, 7].map((num) => {
+                    const isSelected = passengers === num;
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => {
+                          setPassengers(num);
+                          if (num > 4 && vehicleType === 'klein') {
+                            setVehicleType('groot');
+                          }
+                        }}
+                        className={`w-7 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#00255c] text-[#FFD500] shadow-sm ring-2 ring-[#00255c]/20'
+                            : 'bg-[#FAF8FE] text-gray-700 hover:bg-[#EBF2FC] hover:text-[#00255c] border border-[#D4E2F4]'
+                        }`}
+                        title={`${num} ${num === 1 ? 'passagier' : 'passagiers'}${num > 4 ? ' (Grote auto)' : ''}`}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

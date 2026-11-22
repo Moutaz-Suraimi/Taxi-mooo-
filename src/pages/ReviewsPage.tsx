@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { allReviews, type Review } from '../data/reviewsData';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ReviewsPageProps {
   onNavigateHome: () => void;
@@ -21,6 +22,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
   onNavigateHome,
   onNavigateToBooking,
 }) => {
+  const { t } = useLanguage();
   const [selectedFilter, setSelectedFilter] = useState('Alle');
   const [searchQuery, setSearchQuery] = useState('');
   const [reviewsList, setReviewsList] = useState<Review[]>(allReviews);
@@ -106,26 +108,25 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
               onClick={onNavigateHome}
               className="hover:text-[#FFB800] transition cursor-pointer flex items-center gap-1"
             >
-              Home
+              {t('nav.home')}
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[#FFB800] font-bold">Reviews & Ervaringen</span>
+            <span className="text-[#FFB800] font-bold">{t('reviews.page.breadcrumb')}</span>
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="max-w-2xl space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-[#FFB800] text-xs font-extrabold uppercase tracking-wider backdrop-blur-md border border-white/10">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Klantbeoordelingen</span>
+                <span>{t('reviews.page.badge')}</span>
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-                Ervaringen van onze reizigers
+                {t('reviews.page.h1')}
               </h1>
 
               <p className="text-base sm:text-lg text-blue-100/90 leading-relaxed font-normal">
-                Transparantie en kwaliteit staan bij ons voorop. Ontdek wat duizenden tevreden
-                passagiers zeggen over onze chauffeurs, luxe Mercedes wagens en stipte service.
+                {t('reviews.page.sub')}
               </p>
             </div>
 
@@ -138,13 +139,13 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
                     <Star key={i} className="w-4 h-4 fill-[#FFB800] text-[#FFB800]" />
                   ))}
                 </div>
-                <div className="text-xs text-blue-200 mt-1">1.250+ beoordelingen</div>
+                <div className="text-xs text-blue-200 mt-1">{t('reviews.page.ratingsCount')}</div>
               </div>
               <div className="h-14 w-px bg-white/20"></div>
               <div className="space-y-1 text-xs text-blue-200">
-                <div><span className="font-bold text-white">99.4%</span> Punctualiteit</div>
-                <div><span className="font-bold text-white">98%</span> Beveelt ons aan</div>
-                <div><span className="font-bold text-white">100%</span> Geverifieerd</div>
+                <div><span className="font-bold text-white">99.4%</span> {t('reviews.page.punctuality')}</div>
+                <div><span className="font-bold text-white">98%</span> {t('reviews.page.recommends')}</div>
+                <div><span className="font-bold text-white">100%</span> {t('reviews.page.verifiedLabel')}</div>
               </div>
             </div>
           </div>
@@ -156,16 +157,16 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
         {/* Rating Breakdown & Write Review Action */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
-            <span className="font-bold text-[#07152B] text-base">Scoreverdeling:</span>
+            <span className="font-bold text-[#07152B] text-base">{t('reviews.page.scoreBreakdown')}</span>
             <div className="flex items-center gap-2">
-              <span>5 sterren</span>
+              <span>{t('reviews.page.stars5')}</span>
               <div className="w-24 sm:w-32 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-[#FFB800] rounded-full w-[94%]"></div>
               </div>
               <span className="font-bold text-xs">94%</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>4 sterren</span>
+              <span>{t('reviews.page.stars4')}</span>
               <div className="w-20 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-yellow-300 rounded-full w-[5%]"></div>
               </div>
@@ -178,7 +179,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
             className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#001331] hover:bg-[#00255c] text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-105 cursor-pointer"
           >
             <MessageSquarePlus className="w-4 h-4 text-[#FFB800]" />
-            <span>{showReviewForm ? 'Sluit formulier' : 'Plaats een review'}</span>
+            <span>{showReviewForm ? t('reviews.page.closeForm') : t('reviews.page.writeReview')}</span>
           </button>
         </div>
 
@@ -187,22 +188,22 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
           <div className="bg-[#FAF8FE] border border-slate-200 rounded-3xl p-6 sm:p-8 animate-in fade-in slide-in-from-top-4 duration-200">
             <div className="max-w-xl mx-auto space-y-4">
               <div className="text-center space-y-1">
-                <h3 className="text-xl font-black text-[#07152B]">Deel jouw ervaring met Taxi mooo</h3>
+                <h3 className="text-xl font-black text-[#07152B]">{t('reviews.page.shareTitle')}</h3>
                 <p className="text-xs text-gray-500">
-                  Jouw feedback helpt ons onze service elke dag weer te verbeteren.
+                  {t('reviews.page.shareSub')}
                 </p>
               </div>
 
               {submittedReview ? (
                 <div className="p-6 bg-green-50 border border-green-200 rounded-2xl text-center space-y-2">
                   <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto" />
-                  <div className="font-bold text-base text-[#07152B]">Hartelijk dank voor je review!</div>
-                  <p className="text-xs text-gray-600">Je recensie is direct toegevoegd aan het overzicht.</p>
+                  <div className="font-bold text-base text-[#07152B]">{t('reviews.page.thankYou')}</div>
+                  <p className="text-xs text-gray-600">{t('reviews.page.reviewAdded')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleAddReview} className="space-y-4 pt-2">
                   <div className="flex items-center justify-center gap-2">
-                    <span className="text-xs font-bold text-gray-700">Jouw beoordeling:</span>
+                    <span className="text-xs font-bold text-gray-700">{t('reviews.page.yourRating')}</span>
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -223,21 +224,21 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Je naam</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">{t('reviews.page.yourName')}</label>
                       <input
                         type="text"
                         required
-                        placeholder="bijv. Dennis Meijer"
+                        placeholder={t('reviews.page.namePlaceholder')}
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Stad / Locatie</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">{t('reviews.page.city')}</label>
                       <input
                         type="text"
-                        placeholder="bijv. Amsterdam"
+                        placeholder={t('reviews.page.cityPlaceholder')}
                         value={newLocation}
                         onChange={(e) => setNewLocation(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -246,7 +247,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Type rit / Dienst</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">{t('reviews.page.serviceType')}</label>
                     <select
                       value={newService}
                       onChange={(e) => setNewService(e.target.value)}
@@ -261,11 +262,11 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Jouw ervaring</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">{t('reviews.page.yourExperience')}</label>
                     <textarea
                       required
                       rows={3}
-                      placeholder="Vertel over de stiptheid, het voertuig of de chauffeur..."
+                      placeholder={t('reviews.page.experiencePlaceholder')}
                       value={newText}
                       onChange={(e) => setNewText(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -277,7 +278,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
                     className="w-full py-3 rounded-xl bg-[#001331] hover:bg-[#00255c] text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Send className="w-4 h-4 text-[#FFB800]" />
-                    <span>Plaats review</span>
+                    <span>{t('reviews.page.submitReview')}</span>
                   </button>
                 </form>
               )}
@@ -307,7 +308,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Zoek ervaringen..."
+              placeholder={t('reviews.page.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-full bg-white border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#00255c]"
@@ -317,7 +318,7 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
 
         {/* Counter */}
         <div className="text-xs text-gray-500">
-          Weergegeven: <span className="font-bold text-[#07152B]">{filteredReviews.length}</span> van {reviewsList.length} reviews
+          {t('reviews.page.showing')} <span className="font-bold text-[#07152B]">{filteredReviews.length}</span> {t('reviews.page.of')} {reviewsList.length} {t('reviews.page.reviews')}
         </div>
 
         {/* Full Reviews Grid */}
@@ -381,16 +382,16 @@ export const ReviewsPage: React.FC<ReviewsPageProps> = ({
 
         {/* Bottom CTA to Book */}
         <section className="bg-gradient-to-r from-[#001331] to-[#00255c] rounded-3xl p-8 sm:p-12 text-white text-center space-y-4 shadow-xl">
-          <h2 className="text-2xl sm:text-3xl font-black">Zelf het comfort van Taxi mooo ervaren?</h2>
+          <h2 className="text-2xl sm:text-3xl font-black">{t('reviews.page.ctaTitle')}</h2>
           <p className="text-sm sm:text-base text-blue-200 max-w-xl mx-auto">
-            Reserveer eenvoudig je rit online. Direct een gegarandeerde vaste prijs vooraf.
+            {t('reviews.page.ctaSub')}
           </p>
           <div className="pt-2">
             <button
               onClick={onNavigateToBooking}
               className="px-8 py-3.5 rounded-full bg-[#FFB800] hover:bg-yellow-400 text-[#001331] font-black text-sm shadow-xl transition-all hover:scale-105 cursor-pointer inline-flex items-center gap-2"
             >
-              <span>Bereken jouw ritprijs & reserveer</span>
+              <span>{t('reviews.page.ctaBtn')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

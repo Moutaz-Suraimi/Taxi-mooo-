@@ -14,6 +14,7 @@ import {
   Luggage,
   ArrowRight,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ServicesPageProps {
   onNavigateHome: () => void;
@@ -26,6 +27,8 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   onNavigateToBooking,
   onOpenContact,
 }) => {
+  const { t } = useLanguage();
+
   const serviceDetails = [
     {
       id: 'lokaal',
@@ -160,25 +163,24 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               onClick={onNavigateHome}
               className="hover:text-[#FFB800] transition cursor-pointer flex items-center gap-1"
             >
-              Home
+              {t('nav.home')}
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[#FFB800] font-bold">Diensten</span>
+            <span className="text-[#FFB800] font-bold">{t('services.page.breadcrumb')}</span>
           </div>
 
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-[#FFB800] text-xs font-extrabold uppercase tracking-wider backdrop-blur-md border border-white/10">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Ons Dienstenpakket</span>
+              <span>{t('services.page.badge')}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              Compleet en betrouwbaar vervoer voor iedere reis
+              {t('services.page.h1')}
             </h1>
 
             <p className="text-base sm:text-lg text-blue-100/90 leading-relaxed font-normal">
-              Van snelle stadsritten en stipte Schiphol transfers tot zakelijk VIP vervoer en
-              comfortabele groepsbussen: Taxi mooo biedt maatwerkoplossingen met vaste prijzen vooraf.
+              {t('services.page.sub')}
             </p>
           </div>
         </div>
@@ -228,7 +230,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         {service.title}
                       </h2>
                       <span className="text-xs text-[#0B2559] font-bold">
-                        Geschikt voor: {service.idealFor}
+                        {t('services.page.suitableFor')} {service.idealFor}
                       </span>
                     </div>
                   </div>
@@ -239,7 +241,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
 
                   <div className="space-y-2 pt-2">
                     <div className="text-xs font-extrabold uppercase tracking-wider text-[#00255c]">
-                      Wat is altijd inbegrepen?
+                      {t('services.page.included')}
                     </div>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
                       {service.features.map((feature, fIdx) => (
@@ -256,14 +258,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                 <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <ShieldCheck className="w-4 h-4 text-green-600" />
-                    <span>Vaste prijs garantie vooraf</span>
+                    <span>{t('services.page.fixedPrice')}</span>
                   </div>
 
                   <button
                     onClick={onNavigateToBooking}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#00255c] hover:bg-[#001331] text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-105 cursor-pointer"
                   >
-                    <span>Reserveer deze dienst</span>
+                    <span>{t('services.page.bookService')}</span>
                     <ArrowRight className="w-4 h-4 text-[#FFD500]" />
                   </button>
                 </div>
@@ -276,14 +278,13 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         <section className="bg-gradient-to-br from-[#001331] to-[#00255c] rounded-3xl p-6 sm:p-10 lg:p-12 text-white">
           <div className="max-w-2xl mb-8 space-y-3">
             <span className="px-3.5 py-1 rounded-full bg-white/10 text-[#FFD500] text-xs font-extrabold uppercase tracking-wider">
-              Transparante Tarieven
+              {t('services.page.ratesBadge')}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white">
-              Vaste Schiphol & Luchthaven Tarieven
+              {t('services.page.ratesTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-blue-200">
-              Onderstaande tarieven zijn richtprijzen voor een standaard luxe sedan inclusief bagage, btw
-              en vluchtmonitoring. Geen verborgen toeslagen!
+              {t('services.page.ratesSub')}
             </p>
           </div>
 
@@ -307,7 +308,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                     onClick={onNavigateToBooking}
                     className="text-[11px] font-bold text-white underline underline-offset-2 hover:text-[#FFD500] cursor-pointer"
                   >
-                    Boek nu
+                    {t('services.page.bookNowBtn')}
                   </button>
                 </div>
               </div>
@@ -319,7 +320,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               onClick={onNavigateToBooking}
               className="px-8 py-3.5 rounded-full bg-[#FFD500] hover:bg-yellow-400 text-[#07152B] font-black text-sm shadow-xl transition-all hover:scale-105 cursor-pointer"
             >
-              Bereken jouw specifieke ritprijs
+              {t('services.page.calcBtn')}
             </button>
           </div>
         </section>
@@ -328,36 +329,36 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h3 className="text-xl sm:text-2xl font-black text-[#07152B]">
-              Standaard inbegrepen bij iedere rit van Taxi mooo
+              {t('services.page.inclTitle')}
             </h3>
             <p className="text-xs sm:text-sm text-gray-500">
-              Geen verborgen toeslagen of verrassingen. Deze voordelen zijn bij ons altijd gratis.
+              {t('services.page.inclSub')}
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="p-4 rounded-2xl bg-[#EBF2FC] border border-slate-200">
               <Wifi className="w-6 h-6 text-[#00255c] mx-auto mb-2" />
-              <div className="text-xs sm:text-sm font-bold text-[#07152B]">Gratis Snelle Wifi</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">Online werken onderweg</div>
+              <div className="text-xs sm:text-sm font-bold text-[#07152B]">{t('services.page.wifi')}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{t('services.page.wifiSub')}</div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#EBF2FC] border border-slate-200">
               <Luggage className="w-6 h-6 text-[#00255c] mx-auto mb-2" />
-              <div className="text-xs sm:text-sm font-bold text-[#07152B]">Bagageservice</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">Hulp bij tillen & inladen</div>
+              <div className="text-xs sm:text-sm font-bold text-[#07152B]">{t('services.page.luggageSvc')}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{t('services.page.luggageSvcSub')}</div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#EBF2FC] border border-slate-200">
               <Clock className="w-6 h-6 text-[#00255c] mx-auto mb-2" />
-              <div className="text-xs sm:text-sm font-bold text-[#07152B]">45 min Wachttijd</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">Gratis na landing Schiphol</div>
+              <div className="text-xs sm:text-sm font-bold text-[#07152B]">{t('services.page.waiting')}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{t('services.page.waitingSub')}</div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#EBF2FC] border border-slate-200">
               <CreditCard className="w-6 h-6 text-[#00255c] mx-auto mb-2" />
-              <div className="text-xs sm:text-sm font-bold text-[#07152B]">Flexibel Betalen</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">iDEAL, PIN, Creditcard</div>
+              <div className="text-xs sm:text-sm font-bold text-[#07152B]">{t('services.page.payment')}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{t('services.page.paymentSub')}</div>
             </div>
           </div>
         </section>
@@ -365,18 +366,17 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         {/* Bottom Banner */}
         <section className="text-center space-y-4">
           <h3 className="text-xl sm:text-2xl font-black text-[#07152B]">
-            Heb je een speciale vervoerswens of groepsreis?
+            {t('services.page.specialTitle')}
           </h3>
           <p className="text-sm text-gray-600 max-w-xl mx-auto">
-            Voor meerdaagse congressen, bruiloften of speciale logistieke ritten maken we graag een
-            offerte op maat.
+            {t('services.page.specialSub')}
           </p>
           <div className="flex justify-center gap-4">
             <button
               onClick={onOpenContact}
               className="px-6 py-3 rounded-full bg-[#00255c] hover:bg-[#001331] text-white font-bold text-sm transition cursor-pointer"
             >
-              Neem direct contact op
+              {t('services.page.contactBtn')}
             </button>
           </div>
         </section>

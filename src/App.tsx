@@ -17,6 +17,8 @@ import { AccountModal } from './components/AccountModal';
 import { ContactModal } from './components/ContactModal';
 import { InformationModal } from './components/InformationModal';
 import { supabase } from './lib/supabase';
+import { supabaseDataService } from './services/supabaseDataService';
+import { setClientSession } from './services/sessionSecurity';
 
 // Dedicated Pages
 import { AboutPage } from './pages/AboutPage';
@@ -57,18 +59,38 @@ export function App() {
   };
 
   // ── Google OAuth redirect handler ──────────────────────────────────
-  // After Google redirects back, the URL contains access_token in the hash.
-  // Open the AccountModal so the user sees their session being loaded.
+  // After Google redirects back, the URL contains ?code=... (PKCE) or #access_token=... (hash).
+  // Automatically process session, register user, and open modal to confirm login.
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('access_token') || hash.includes('error_description')) {
+    const hasOAuthHash =
+      window.location.hash.includes('access_token') ||
+      window.location.hash.includes('error_description');
+    const hasOAuthCode = window.location.search.includes('code=');
+
+    if (hasOAuthHash || hasOAuthCode) {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+          const authUser = await supabaseDataService.handleGoogleUserSession(session.user);
+          if (authUser) {
+            setClientSession(authUser);
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }
+      });
       setIsAccountModalOpen(true);
     }
 
-    // Also listen for Supabase auth state changes (covers in-tab redirect)
+    // Also listen for Supabase auth state changes (covers in-tab / redirect flow)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          const authUser = await supabaseDataService.handleGoogleUserSession(session.user);
+          if (authUser) {
+            setClientSession(authUser);
+            if (window.location.search.includes('code=')) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          }
           setIsAccountModalOpen(true);
         }
       }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Plane, Users, Briefcase } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface InfoModalProps {
   type: 'about' | 'services' | 'faq' | null;
@@ -7,6 +8,7 @@ interface InfoModalProps {
 }
 
 export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) => {
+  const { t } = useLanguage();
   if (!type) return null;
 
   return (
@@ -15,9 +17,9 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#001331] to-[#00255c] text-white">
           <h3 className="font-bold text-lg">
-            {type === 'about' && 'Over Taxi mooo'}
-            {type === 'services' && 'Onze Diensten & Vervoer'}
-            {type === 'faq' && 'Veelgestelde Vragen (FAQ)'}
+            {type === 'about' && t('about.page.badge')}
+            {type === 'services' && t('services.page.badge')}
+            {type === 'faq' && t('faq.page.badge')}
           </h3>
           <button
             onClick={onClose}
@@ -33,35 +35,33 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
             <div className="space-y-4">
               <div className="p-4 bg-[#EBF2FC] rounded-2xl border border-slate-200">
                 <h4 className="font-bold text-[#00255c] text-base mb-1">
-                  Het Premium Taxibedrijf van Nederland
+                  {t('about.page.h1')}
                 </h4>
                 <p className="text-gray-600 leading-relaxed">
-                  Taxi mooo staat voor betrouwbaarheid, luxe en stiptheid. Gevestigd in Amsterdam en
-                  actief in heel Nederland, bieden wij representatief vervoer in moderne
-                  Mercedes-Benz voertuigen.
+                  {t('about.page.sub')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <h5 className="font-bold text-[#07152B]">Onze Kernwaarden</h5>
+                <h5 className="font-bold text-[#07152B]">{t('about.page.pillarsTitle')}</h5>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#FFD500] text-[#07152B] flex items-center justify-center text-xs font-bold">
                       ✓
                     </span>
-                    <span>100% Gecertificeerde chauffeurs met TX-Keurmerk</span>
+                    <span>{t('about.page.p2Title')}</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#FFD500] text-[#07152B] flex items-center justify-center text-xs font-bold">
                       ✓
                     </span>
-                    <span>Altijd schone, recente Mercedes-Benz wagenpark</span>
+                    <span>{t('about.page.fleetTitle')}</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#FFD500] text-[#07152B] flex items-center justify-center text-xs font-bold">
                       ✓
                     </span>
-                    <span>Vaste en transparante ritprijzen vooraf</span>
+                    <span>{t('about.page.p3Title')}</span>
                   </li>
                 </ul>
               </div>
@@ -75,8 +75,7 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
                 <div>
                   <h5 className="font-bold text-[#07152B]">Schiphol & Airport Transfers</h5>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Stressvrij van en naar alle Nederlandse en Belgische luchthavens. Vaste lage
-                    tarieven inclusief vluchtmonitoring.
+                    {t('services.page.ratesSub')}
                   </p>
                 </div>
               </div>
@@ -84,10 +83,9 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
               <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-3">
                 <Briefcase className="w-6 h-6 text-[#00255c] shrink-0 mt-0.5" />
                 <div>
-                  <h5 className="font-bold text-[#07152B]">Zakelijk Vervoer & VIP</h5>
+                  <h5 className="font-bold text-[#07152B]">{t('about.page.car2Title')}</h5>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Discreet directievervoer in representatieve Mercedes S-Klasse met wifi, water en
-                    stille cabine. Rijden op factuur mogelijk.
+                    {t('about.page.car2Desc')}
                   </p>
                 </div>
               </div>
@@ -95,10 +93,9 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
               <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-3">
                 <Users className="w-6 h-6 text-[#00255c] shrink-0 mt-0.5" />
                 <div>
-                  <h5 className="font-bold text-[#07152B]">Groepsvervoer & Taxibus</h5>
+                  <h5 className="font-bold text-[#07152B]">{t('about.page.car3Title')}</h5>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Comfortabele Mercedes V-Klasse bussen tot 8 passagiers en ruime kofferbak voor
-                    evenementen, tours of gezinnen.
+                    {t('about.page.car3Desc')}
                   </p>
                 </div>
               </div>
@@ -109,27 +106,24 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
             <div className="space-y-3">
               <div className="p-3 bg-gray-50 rounded-xl">
                 <h5 className="font-bold text-[#07152B] text-xs">
-                  Hoe wordt de ritprijs berekend?
+                  {t('about.page.p3Title')}
                 </h5>
                 <p className="text-xs text-gray-600 mt-1">
-                  Je ritprijs wordt vooraf berekend op basis van de exacte afstand en rijtijd. Dit
-                  is een vaste gegarandeerde prijs die nooit hoger uitvalt.
+                  {t('about.page.p3Text')}
                 </p>
               </div>
 
               <div className="p-3 bg-gray-50 rounded-xl">
-                <h5 className="font-bold text-[#07152B] text-xs">Kan ik kosteloos annuleren?</h5>
+                <h5 className="font-bold text-[#07152B] text-xs">{t('about.page.p1Title')}</h5>
                 <p className="text-xs text-gray-600 mt-1">
-                  Ja, je kunt tot 2 uur voor de afgesproken ophaaltijd kosteloos wijzigen of
-                  annuleren via 'Mijn account' of telefonisch.
+                  {t('about.page.p1Text')}
                 </p>
               </div>
 
               <div className="p-3 bg-gray-50 rounded-xl">
-                <h5 className="font-bold text-[#07152B] text-xs">Hoe kan ik betalen?</h5>
+                <h5 className="font-bold text-[#07152B] text-xs">{t('services.page.payment')}</h5>
                 <p className="text-xs text-gray-600 mt-1">
-                  Je kunt online betalen via iDEAL of creditcard, of gemakkelijk achteraf in de taxi
-                  met PIN of contant geld.
+                  {t('services.page.paymentSub')}
                 </p>
               </div>
             </div>
@@ -140,7 +134,7 @@ export const InformationModal: React.FC<InfoModalProps> = ({ type, onClose }) =>
               onClick={onClose}
               className="w-full py-3 bg-[#00255c] hover:bg-[#001331] text-white font-bold rounded-xl transition cursor-pointer"
             >
-              Sluiten
+              {t('reviews.page.closeForm')}
             </button>
           </div>
         </div>

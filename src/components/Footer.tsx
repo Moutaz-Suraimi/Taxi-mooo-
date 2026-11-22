@@ -10,13 +10,14 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isRTL = language === 'ar';
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <footer className="w-full bg-[#000E24] text-white pt-16 pb-12 border-t border-blue-950/60">
+    <footer className="w-full bg-[#000E24] text-white pt-16 pb-12 border-t border-blue-950/60" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-blue-900/40">
           {/* Col 1: Brand & Bio */}
@@ -25,9 +26,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <Logo size="lg" />
             </div>
             <p className="text-xs sm:text-sm text-blue-200/80 leading-relaxed">
-              Taxi mooo is dé betrouwbare, luxe en punctuele taxidienst in Nederland. 24/7
-              beschikbaar voor stadsritten, zakelijk vervoer en luchthaventransfers in representatieve
-              Mercedes-Benz wagens.
+              {t('footer.tagline')}
             </p>
             <div className="flex items-center gap-2 pt-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFB800]/15 text-[#FFB800] text-xs font-bold border border-[#FFB800]/30">
@@ -46,7 +45,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('home')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.home')}</span>
                 </button>
@@ -54,7 +53,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('about')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.about')}</span>
                 </button>
@@ -62,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('services')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.services')}</span>
                 </button>
@@ -70,7 +69,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('reviews')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.reviews')}</span>
                 </button>
@@ -78,7 +77,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('faq')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.faq')}</span>
                 </button>
@@ -86,7 +85,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               <li>
                 <button
                   onClick={() => onNavigate('contact')}
-                  className="hover:text-[#FFB800] transition cursor-pointer text-left flex items-center gap-1.5"
+                  className="hover:text-[#FFB800] transition cursor-pointer text-start flex items-center gap-1.5"
                 >
                   <span>{t('nav.contact')}</span>
                 </button>
@@ -97,7 +96,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
           {/* Col 3: Populaire Luchthaventransfers */}
           <div className="space-y-3">
             <h4 className="font-bold text-sm tracking-wider uppercase text-[#FFB800]">
-              Luchthaventransfers
+              {t('footer.airportTransfers')}
             </h4>
             <ul className="space-y-2 text-xs sm:text-sm text-blue-200/80">
               <li className="flex justify-between items-center py-0.5">
@@ -126,7 +125,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
           {/* Col 4: Direct Contact & Centrale */}
           <div className="space-y-3">
             <h4 className="font-bold text-sm tracking-wider uppercase text-[#FFB800]">
-              Centrale & Contact
+              {t('footer.central')}
             </h4>
             <ul className="space-y-3 text-xs sm:text-sm text-blue-200/80">
               <li>
@@ -170,7 +169,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
                     onClick={onOpenContactModal}
                     className="text-xs text-[#FFB800] hover:underline cursor-pointer"
                   >
-                    Direct contactformulier openen
+                    {t('footer.openContactForm')}
                   </button>
                 </li>
               )}
@@ -181,7 +180,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
         {/* Bottom Bar: Copyright, Legal & Back to top */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-blue-300/60">
           <div className="flex flex-wrap items-center gap-3">
-            <span>© {new Date().getFullYear()} Taxi mooo B.V. Alle rechten voorbehouden.</span>
+            <span>© {new Date().getFullYear()} Taxi mooo B.V. {t('footer.rights')}</span>
             <span>•</span>
             <span>KvK: 84920192</span>
             <span>•</span>
@@ -193,13 +192,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
               onClick={() => onNavigate('contact')}
               className="hover:text-white transition cursor-pointer"
             >
-              Contact
+              {t('nav.contact')}
             </button>
             <button
               onClick={() => onNavigate('faq')}
               className="hover:text-white transition cursor-pointer"
             >
-              FAQ
+              {t('nav.faq')}
             </button>
             <button
               onClick={() => onNavigate('admin')}
@@ -211,9 +210,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenContactModal }
             <button
               onClick={scrollToTop}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#00173d] hover:bg-[#002254] text-blue-200 hover:text-white transition cursor-pointer border border-blue-900/40"
-              title="Terug naar boven"
+              title={t('footer.backToTop')}
             >
-              <span>Naar boven</span>
+              <span>{t('footer.backToTop')}</span>
               <ArrowUp className="w-3.5 h-3.5" />
             </button>
           </div>
